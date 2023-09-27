@@ -129,27 +129,33 @@ def lagrangian_search(
         left_exceed = (x_dep > xmax).astype(np.int8)
         right_exceed = (x_dep < xmin).astype(np.int8)
         
+        left_recovering = xmin + x_dep - xmax
+        right_recovering = xmax + x_dep - xmin
+        
         top_exceed = (y_dep > ymax).astype(np.int8)
         bottom_exceed = (y_dep < ymin).astype(np.int8)
+        
+        bottom_recovering = ymin + y_dep - ymax
+        top_recovering = ymax + y_dep - ymin
         
         # Periodic x boundaries
         if bool(bcx_kind):
             x_dep = (
                 x_dep * (1 - right_exceed)* (1 - left_exceed)
-                +  (xmin + x_dep - xmax) * right_exceed
-                +  (xmax + x_dep - xmin) * left_exceed
+                +  right_exceed * left_recovering
+                +  left_exceed * right_recovering
                 )
             
             ii = (
                 ii * (1 - right_exceed)* (1 - left_exceed)
-                +  right_exceed * np.floor((xmin + x_dep - xmax) / dx) 
-                +  left_exceed * np.floor((xmax + x_dep - xmin) / dx)
+                +  right_exceed * np.floor(left_recovering / dx) 
+                +  left_exceed * np.floor(right_recovering / dx)
                 )
             
             lx = (
                 lx * (1 - right_exceed)* (1 - left_exceed)
-                +  right_exceed * ((xmin + x_dep - xmax) / dx - np.floor((xmin + x_dep - xmax) / dx))
-                +  left_exceed * ((xmax + x_dep - xmin) / dx) - np.floor((xmax + x_dep - xmin) / dx)
+                +  right_exceed * (left_recovering / dx - np.floor(left_recovering / dx))
+                +  left_exceed * (right_recovering / dx) - np.floor(right_recovering / dx)
             )
            
         # Fixed x boundaries
@@ -172,20 +178,20 @@ def lagrangian_search(
         if bool(bcy_kind):
             y_dep = (
                 y_dep * (1 - top_exceed)* (1 - bottom_exceed)
-                +  (ymin + y_dep - ymax) * top_exceed
-                +  (ymax + y_dep - ymin) * bottom_exceed
+                +  top_exceed * bottom_recovering
+                +  bottom_exceed * top_recovering
                 )
             
             jj = (
                 jj * (1 - top_exceed)* (1 - bottom_exceed)
-                +  top_exceed * np.floor((ymin + y_dep - ymax) / dy) 
-                +  bottom_exceed * np.floor((ymax + y_dep - ymin) / dy)
+                +  top_exceed * np.floor(bottom_recovering / dy) 
+                +  bottom_exceed * np.floor(top_recovering / dy)
                 )
             
             ly = (
                 ly * (1 - top_exceed)* (1 - bottom_exceed)
-                +  top_exceed * ((ymin + y_dep - xmax) / dy - np.floor((ymin + y_dep - ymax) / dy))
-                +  bottom_exceed * ((ymax + y_dep - ymin) / dy) - np.floor((ymax + y_dep - ymin) / dy)
+                +  top_exceed * (bottom_recovering / dy - np.floor(bottom_recovering / dy))
+                +  bottom_exceed * (top_recovering / dy) - np.floor(top_recovering / dy)
                 )            
            
         # Fixed y boundaries 
