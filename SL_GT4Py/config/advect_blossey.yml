@@ -1,0 +1,80 @@
+# Blossey - Durran advection test case
+# following P. N. Blossey, D. R. Durran, Selective monotonicity preservation in scalar advection,
+# J. Comput. Phys. 227 (2008) 5160–5183.
+
+
+isetup:
+    testcase: advect_blossey
+
+tracer_fields:
+    enabled: True
+    amplitude: 1.0
+    background: 0.1
+    definition: cosine-plane
+
+total_fields: &total_specification
+    velocity_definition: blossey
+    thermodynamic_definition: boussinesq
+
+ambient_fields: *total_specification
+relaxation_fields: *total_specification
+
+loutput_data: True
+output_fields:
+    - tracer
+
+model:
+  passive_advection: True
+  elastic_density : True
+
+sischeme:
+    enabled: False
+
+advection:
+   scheme: mpdata_unsplit
+
+nx: 101
+bcx_kind: 0
+
+ny: 101
+bcy_kind: 0
+
+nz: 3
+
+dt: 0.0005
+
+model_starttime: 0.0
+model_endtime: 1.0
+
+tout_info: 0.05
+outer_nstep: 1
+
+courant: "1d"
+
+mpdata:
+  order: 3
+  nonos: True
+  gauge: True
+  cc3rd: True
+
+ppm:
+  nonos: True
+
+define_horizontal_coordinates:
+  func: fvms.geometry.horizontal_coordinates.identity
+
+define_orography:
+  func: fvms.geometry.orography.flat
+  args:
+    amplitude: 0.0
+
+define_orography_smooth:
+  func: fvms.geometry.orography.flat
+  args:
+    amplitude: 0.0
+
+define_vertical_coordinate_stretching:
+  func: fvms.geometry.vertical_coordinate_stretching.none
+
+define_vertical_coordinate:
+  func: fvms.geometry.vertical_coordinate.btf_levels
