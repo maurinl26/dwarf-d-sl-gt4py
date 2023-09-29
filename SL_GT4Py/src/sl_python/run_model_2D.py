@@ -60,10 +60,12 @@ def interpolate_cubic_2d(
     p2 = lambda l: 0.5 * l * (l**2 - 1) / 3
 
     px = np.array([p_1(lx), p0(lx), p1(lx), p2(lx)])
-    py = np.array([p_1(ly), p0(ly), p1(ly), p2(ly)])        
+    py = np.array([p_1(ly), p0(ly), p1(ly), p2(ly)])      
     
-    return padded_field[ii - 1 : ii + 3, jj - 1 : jj + 3] * px * py.T
-
+    psi_x = np.matmul(padded_field[ii - 1 : ii + 3, jj - 1 : jj + 3], px)
+    psi_hat = np.matmul(psi_x, py.T)
+    
+    return psi_hat
 
 def boundaries(
     bc_kind: int,
