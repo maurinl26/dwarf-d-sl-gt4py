@@ -1,0 +1,74 @@
+nx: 100
+xmin: -27000.0
+xmax: 27000.0
+bcx_kind: 0
+
+ny: 50
+ymin: -27000.0
+ymax: 27000.0
+bcy_kind: 0
+
+nz: 50
+zmin: 0.0
+zmax: 40000.0
+bcz_kind: 0
+
+dt: 0.25
+
+model_starttime: 0.0
+model_endtime: 21600.0
+
+courant: "1d"
+
+tout_info: 300
+outer_nstep: 1
+
+loutput_data: True
+output_fields:
+  - theta_total
+  - theta_perturbation
+  - theta_ambient
+  - exner_total
+  - exner_perturbation
+  - exner_ambient
+  - density
+  - pressure
+
+
+constants:
+    fcoriolis0: 0.0
+
+total_fields: &total_specification
+    velocity_definition: uniform
+    velocity_x: 20.0
+    velocity_y: 0.0
+    velocity_z: 0.0
+    thermodynamic_definition: isothermal
+    t00: 239.5
+    theta00: 239.5
+    stb00: 4.0791e-5
+    
+ 
+ambient_fields: *total_specification
+
+relaxation_fields: *total_specification
+
+define_horizontal_coordinates:
+  func: fvms.geometry.horizontal_coordinates.identity
+
+define_orography: &orography
+  func: fvms.geometry.orography.from_file
+  args:
+    filename: "./sandbox/orography_files/isolated_circular_mountain_orography.nc"
+
+
+define_orography_smooth: *orography
+
+define_vertical_coordinate_stretching:
+  func: fvms.geometry.vertical_coordinate_stretching.tanh
+  args:
+    dz_near_surface: 10
+
+define_vertical_coordinate:
+  func: fvms.geometry.vertical_coordinate.btf_levels
+
