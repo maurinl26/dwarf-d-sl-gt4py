@@ -1,7 +1,6 @@
 """ Taken from FVM_GT4Py_slim blossey_xy """
 import sys
-import logging
-import time
+
 from matplotlib import pyplot as plt
 import numpy as np
 
@@ -9,98 +8,12 @@ import numpy as np
 sys.path.append("/home/maurinl/FVM_GT4Py_slim/src")
 sys.path.append("/home/maurinl/SL_GT4Py/SL8GT4Py/src")
 
-from fvms.model.config import Config
-from fvms.model.fields import FieldContainer
-from fvms.utils.storage import to_numpy
-
-from sl_python.run_model_2D import sl_init, sl_xy, backup
+from sl_python.sl_2D import sl_init, sl_xy, backup
 from sl_python.plot import plot_2D_scalar_field
 
-def model_driver(config: Config, fields: FieldContainer):
-    """Driver for semi lagrangian advection.
+def main(lsettls: bool, nsiter: int, nitmp: int):
     
-    Args:
-        config (Config): _description_
-        fields (FieldContainer): _description_
-
-    Returns:
-        _type_: _description_
-    """
-    
-    dt = config.dt
-    NITMP = config.outer_nstep
-    
-    # Initiate 
-    tracer = to_numpy(fields.tracer["covering"])
-    tracer_e = to_numpy(fields.tracer["covering"])
-    
-    vx, vy = to_numpy(fields.vel[0]["covering"]), to_numpy(fields.vel[1]["covering"])
-    vx_e, vy_e = to_numpy(fields.vel[0]["covering"]), to_numpy(fields.vel[1]["covering"])
-    vx_p, vy_p = to_numpy(fields.vel_bck[0]["covering"]), to_numpy(fields.vel_bck[1]["covering"])
-    
-    # Coordinates
-    xcr = config.coordinates.xcr["covering"]
-    ycr = config.coordinates.ycr["covering"]
-    
-    # Indices 
-    I = np.arange(0, nx).astype(np.int8)
-    J = np.arange(0, ny).astype(np.int8)
-    
-    # 
-    vx_e, vy_e, vx, vy = sl_init(
-        vx_e=vx_e, vy_e=vy_e, vx=vx, vy=vy, vx_p=vx_p, vy_p=vy_p, LSETTLS=True
-    )
-
-    ######### j_iter > 0 ##########
-    for jstep in range(1, NITMP):
-        
-        # Copie des champs
-        tracer, vy, tracer = backup(
-            vx=vx,
-            vy=vy,
-            vx_e=vx_e,
-            vy_e=vy_e,
-            tracer=tracer,
-            tracer_e=tracer_e
-        )
-
-
-        # Estimations
-        vx_e, vy_e, tracer_e = sl_xy(
-            I=I,
-            J=J,
-            x=xcr,
-            y=ycr,
-            vx=vx,
-            vy=vy,
-            vx_e=vx_e,
-            vy_e=vy_e,
-            tracer=tracer,
-            tracer_e=tracer_e,
-            dt=dt,
-            dx=dx, 
-            dy=dy,
-            nx=nx,
-            ny=ny,
-            bcx_kind=bcx_kind,
-            bcy_kind=bcy_kind,
-            xmin=xmin,
-            xmax=xmax,
-            ymin=ymin,
-            ymax=ymax
-        )
-    
-    return vx_e, vy_e, tracer_e
-
-if __name__ == "__main__":
-    
-    # Init option
-    LSETTLS = True
-    LNESC = not LSETTLS  # Pour info
-
-    # Iterations
-    NSITER = 5  # Semi lagrangian step
-    NITMP = 5
+    lnesc = not lsettls    
     dt = 1
 
     # Grid
@@ -215,9 +128,11 @@ if __name__ == "__main__":
     print(f"Tracer : min {np.min(tracer)}, max {np.max(tracer)}, mean {np.mean(tracer)}")
     imax, jmax = np.unravel_index(np.argmax(tracer, axis=None), tracer.shape)
     print(f"Max of tracer field,  X : {xc[imax]:.2f} Y : {yc[jmax]:.2f}")
-    
-    
-    
 
+if __name__ == "__main__":
     
+    LSETTLS = True
+    NITMP = 5
+    NSITER = 4 
     
+    main(LSETTLS, NSITER, NITMP)
