@@ -3,7 +3,7 @@ import numpy as np
 
 
 def interpolate_linear_2d(
-    lx: np.float64, ly: np.float64, ii: int, jj: int, field: np.ndarray
+    lx: np.float64, ly: np.float64, ii: np.int64, jj: np.int64, field: np.ndarray
 ):
     """Interpolate sequentially on x axis and on y axis
 
@@ -25,7 +25,7 @@ def interpolate_linear_2d(
 
 
 def interpolate_cubic_2d(
-    lx: np.float64, ly: np.float64, ii: int, jj: int, field: np.ndarray, bc_kind: int
+    lx: np.float64, ly: np.float64, ii: np.int64, jj: np.int64, field: np.ndarray, bc_kind: int
 ) -> np.float64:
     """Interpolate sequentially on x axis and on y axis.
 
@@ -54,13 +54,16 @@ def interpolate_cubic_2d(
         jj += 1
 
     # Polynomes de lagrange d'ordre 3
-    p_1 = lambda l: 0.5 * l * (l - 1) * (2 - l) / 3
+    p_1 = lambda l: (1/6) * l * (l - 1) * (2 - l) 
     p0 = lambda l: (1 - l**2) * (1 - l / 2)
-    p1 = lambda l: 0.5 * l * (l + 1) * (l - 2)
-    p2 = lambda l: 0.5 * l * (l**2 - 1) / 3
+    p1 = lambda l: (1/2) * l * (l + 1) * (2 - l)
+    p2 = lambda l: (1/6) * l * (l**2 - 1) 
 
     px = np.array([p_1(lx), p0(lx), p1(lx), p2(lx)])
     py = np.array([p_1(ly), p0(ly), p1(ly), p2(ly)])
+    
+    assert(round(sum(px)) == 1)
+    assert(round(sum(py)) == 1)
 
     psi_hat = np.dot(np.matmul(padded_field[ii - 1 : ii + 3, jj - 1 : jj + 3], px), py)
 
@@ -71,11 +74,9 @@ def boundaries(
     bc_kind: int,
     points: np.ndarray,
     indices: np.ndarray,
-    l: np.ndarray,
-    xmin: np.float64,
-    xmax: np.float64,
-    nx: int,
-    dx: float
+    min: np.float64,
+    max: np.float64,
+    n: int,
 ):
     """Apply boundary conditions on field.
 
@@ -86,50 +87,22 @@ def boundaries(
         max (np.float): _description_
         nx (int): _description_
     """
-    left_exceed = points > xmax
-    right_exceed = points < xmin
-
-    left_recovering = xmin + points - xmax
-    right_recovering = xmax + points - xmin
+    left_exceed = (indices >= n)
+    right_exceed = (indices < 0)
 
     # Periodic boundaries
     if bool(bc_kind):
-        points = (
-            points * (1 - right_exceed) * (1 - left_exceed)
-            + right_exceed * left_recovering
-            + left_exceed * right_recovering
-        )
-
-        indices = (
-            indices * (1 - right_exceed) * (1 - left_exceed)
-            + right_exceed * np.floor(left_recovering / dx)
-            + left_exceed * np.floor(right_recovering / dx)
-        )
-
-        l = (
-            l * (1 - right_exceed) * (1 - left_exceed)
-            + right_exceed * (left_recovering / dx - np.floor(left_recovering / dx))
-            + left_exceed * (right_recovering / dx)
-            - np.floor(right_recovering / dx)
-        )
+        indices %= n
 
     # Fixed boundaries
     else:
-        points = (
-            points * (1 - right_exceed) * (1 - left_exceed)
-            + xmin * left_exceed
-            + xmax * right_exceed
-        )
-
         indices = (
             indices * (1 - right_exceed) * (1 - left_exceed)
             + 0 * left_exceed
-            + (nx - 1) * right_exceed
+            + (n - 1) * right_exceed
         )
 
-        l = l * (1 - right_exceed) * (1 - left_exceed)
-
-    return indices.astype(np.int8), l
+    return indices.astype(np.int64)
 
 
 def lagrangian_search(
@@ -167,7 +140,6 @@ def lagrangian_search(
     """
 
     # Array declaration
-    ################ l > 1 ##################
     for l in range(0, nsiter):
         
         if l == 0:
@@ -175,21 +147,21 @@ def lagrangian_search(
             traj_y = 0.5 * dt * (vy_e + vy)
 
         else:
-            traj_x = 0.5 * dt * (vx_e + vx)
-            traj_y = 0.5 * dt * (vy_e + vy)
-
+            traj_x = 0.5 * dt * (vx_e + vx_a)
+            traj_y = 0.5 * dt * (vy_e + vy_a)
+            
         x_dep = x - traj_x
         y_dep = y - traj_y
 
-        lx = traj_x / dx - np.floor(traj_x / dx)
+        lx = traj_x / dx - np.floor(traj_x / dx) 
         ly = traj_y / dy - np.floor(traj_y / dy)
-
+        
         i_d = I - np.floor(traj_x / dx)
         j_d = J - np.floor(traj_y / dy)
-
-        i_d, lx = boundaries(bcx_kind, x_dep, i_d, lx, xmin, xmax, nx, dx)
-        j_d, ly = boundaries(bcy_kind, y_dep, j_d, ly, ymin, ymax, ny, dy)
-
+                
+        i_d = boundaries(bcx_kind, x_dep, i_d, xmin, xmax, nx)
+        j_d = boundaries(bcy_kind, y_dep, j_d, ymin, ymax, ny)
+                
         ####### Interpolation for fields ########
         vx_a = np.zeros((nx, ny))
         vy_a = np.zeros((nx, ny))
@@ -204,7 +176,7 @@ def lagrangian_search(
                     lx[i, j], ly[i, j], i_d[i, j], j_d[i, j], vy, bcx_kind
                 )
 
-    return lx, ly, i_d.astype(np.int8), j_d.astype(np.int8)
+    return lx, ly, i_d.astype(np.int64), j_d.astype(np.int64)
 
 def sl_init(
     vx_e: np.ndarray,
@@ -213,10 +185,11 @@ def sl_init(
     vy: np.ndarray,
     vx_p: np.ndarray,
     vy_p: np.ndarray,
-    LSETTLS: bool = True,
+    lsettls: bool = True,
 ) -> Tuple[np.ndarray]:
+
     # LSETTLS
-    if LSETTLS:
+    if lsettls:
         vx_e = vx.copy()
         vy_e = vy.copy()
 
@@ -254,6 +227,7 @@ def sl_xy(
     ymin: np.float64,
     ymax: np.float64
 ):
+    
     # Recherche semi lag
     lx_d, ly_d, i_d, j_d = lagrangian_search(
         x=x,
@@ -276,7 +250,7 @@ def sl_xy(
         ymin=ymin,
         ymax=ymax
     )
-
+    
     # Interpolate
     for i in range(nx):
         for j in range(ny):
