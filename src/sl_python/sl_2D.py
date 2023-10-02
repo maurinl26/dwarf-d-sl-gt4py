@@ -1,13 +1,5 @@
 from typing import Tuple
 import numpy as np
-import matplotlib.pyplot as plt
-
-import sys
-
-sys.path.append("/home/maurinl/FVM_GT4Py_slim/src")
-sys.path.append("/home/maurinl/sl_gt4py/SL_GT4Py/src")
-
-from sl_python.plot import plot_2D_scalar_field
 
 
 def interpolate_linear_2d(
@@ -33,7 +25,7 @@ def interpolate_linear_2d(
 
 
 def interpolate_cubic_2d(
-    lx: np.float64, ly: np.float64, ii: int, jj: int, field: np.ndarray
+    lx: np.float64, ly: np.float64, ii: int, jj: int, field: np.ndarray, bc_kind: int
 ) -> np.float64:
     """Interpolate sequentially on x axis and on y axis.
 
@@ -50,7 +42,7 @@ def interpolate_cubic_2d(
 
     # Padding on interpolation field
     # Fixed
-    if bcx_kind == 0:
+    if bc_kind == 0:
         padded_field = np.pad(field, (1, 2), "edge")
         ii += 1
         jj += 1
@@ -83,6 +75,7 @@ def boundaries(
     xmin: np.float64,
     xmax: np.float64,
     nx: int,
+    dx: float
 ):
     """Apply boundary conditions on field.
 
@@ -176,47 +169,42 @@ def lagrangian_search(
     # Array declaration
     ################ l > 1 ##################
     for l in range(0, nsiter):
+        
         if l == 0:
-            disp_x = dt * vx
-            disp_y = dt * vy
+            traj_x = 0.5 * dt * (vx_e + vx)
+            traj_y = 0.5 * dt * (vy_e + vy)
 
         else:
-            disp_x = 0.5 * dt * (vx_e + vx)
-            disp_y = 0.5 * dt * (vy_e + vy)
+            traj_x = 0.5 * dt * (vx_e + vx)
+            traj_y = 0.5 * dt * (vy_e + vy)
 
-        x_dep = x - disp_x
-        y_dep = y - disp_y
+        x_dep = x - traj_x
+        y_dep = y - traj_y
 
-        lx = disp_x / dx - np.floor(disp_x / dx)
-        ly = disp_y / dy - np.floor(disp_y / dy)
+        lx = traj_x / dx - np.floor(traj_x / dx)
+        ly = traj_y / dy - np.floor(traj_y / dy)
 
-        i_d = I - np.floor(disp_x / dx)
-        j_d = J - np.floor(disp_y / dy)
+        i_d = I - np.floor(traj_x / dx)
+        j_d = J - np.floor(traj_y / dy)
 
-        i_d, lx = boundaries(bcx_kind, x_dep, i_d, lx, xmin, xmax, nx)
-        j_d, ly = boundaries(bcy_kind, y_dep, j_d, ly, ymin, ymax, ny)
+        i_d, lx = boundaries(bcx_kind, x_dep, i_d, lx, xmin, xmax, nx, dx)
+        j_d, ly = boundaries(bcy_kind, y_dep, j_d, ly, ymin, ymax, ny, dy)
 
         ####### Interpolation for fields ########
+        vx_a = np.zeros((nx, ny))
+        vy_a = np.zeros((nx, ny))
         for i in range(nx):
             for j in range(ny):
+            
                 # interpolation en r_d(l) -> i_d(l), j_d(l)
-                vx_e[i, j] = interpolate_cubic_2d(
-                    lx[i, j], ly[i, j], i_d[i, j], j_d[i, j], vx
+                vx_a[i, j] = interpolate_cubic_2d(
+                    lx[i, j], ly[i, j], i_d[i, j], j_d[i, j], vx, bcx_kind
                 )
-                vy_e[i, j] = interpolate_cubic_2d(
-                    lx[i, j], ly[i, j], i_d[i, j], j_d[i, j], vy
-                )
-
-                # interpolation en r_d(l) -> i_d(l), j_d(l)
-                vx[i, j] = interpolate_cubic_2d(
-                    lx[i, j], ly[i, j], i_d[i, j], j_d[i, j], vx_p
-                )
-                vy[i, j] = interpolate_cubic_2d(
-                    lx[i, j], ly[i, j], i_d[i, j], j_d[i, j], vy_p
+                vy_a[i, j] = interpolate_cubic_2d(
+                    lx[i, j], ly[i, j], i_d[i, j], j_d[i, j], vy, bcx_kind
                 )
 
-    return lx, ly, i_d.astype(np.int8), j_d.astype(np.int8), vx_e, vy_e
-
+    return lx, ly, i_d.astype(np.int8), j_d.astype(np.int8)
 
 def sl_init(
     vx_e: np.ndarray,
@@ -267,7 +255,7 @@ def sl_xy(
     ymax: np.float64
 ):
     # Recherche semi lag
-    lx_d, ly_d, i_d, j_d, vx_e, vy_e = lagrangian_search(
+    lx_d, ly_d, i_d, j_d = lagrangian_search(
         x=x,
         y=y,
         I=I,
@@ -292,10 +280,18 @@ def sl_xy(
     # Interpolate
     for i in range(nx):
         for j in range(ny):
+            
             # Interpolate tracer in T(r, t) = T(r_d, t - dt)
-
             tracer_e[i, j] = interpolate_cubic_2d(
-                lx=lx_d[i, j], ly=ly_d[i, j], ii=i_d[i, j], jj=j_d[i, j], field=tracer
+                lx=lx_d[i, j], ly=ly_d[i, j], ii=i_d[i, j], jj=j_d[i, j], field=tracer, bc_kind=bcx_kind
+            )
+            
+            # Ebauche vitesse
+            vx_e[i, j] = interpolate_cubic_2d(
+                lx=lx_d[i, j], ly=ly_d[i, j], ii=i_d[i, j], jj=j_d[i, j], field=vx, bc_kind=bcx_kind
+            )
+            vy_e[i, j] = interpolate_cubic_2d(
+                lx=lx_d[i, j], ly=ly_d[i, j], ii=i_d[i, j], jj=j_d[i, j], field=vy, bc_kind=bcx_kind
             )
 
     return vx_e, vy_e, tracer_e
@@ -330,128 +326,3 @@ def backup(
 
     return vx, vy, tracer
 
-
-if __name__ == "__main__":
-    # Init option
-    LSETTLS = True
-    LNESC = not LSETTLS  # Pour info
-
-    # Iterations
-    NSITER = 5  # Semi lagrangian step
-    NITMP = 5
-    dt = 1
-
-    # Grid
-    xmin, xmax = 0, 100
-    ymin, ymax = 0, 100
-    nx, ny = 100, 100
-
-    # spacings
-    dx = (xmax - xmin) / nx
-    dy = (ymax - ymin) / ny
-
-    # Boundaries
-    # 1 : PERIODIC
-    # 0 : FIXED
-    bcx_kind = 0
-    bcy_kind = 0
-
-    # Spacing
-    xc = np.linspace(xmin, xmax, nx)
-    yc = np.linspace(ymin, ymax, ny)
-    xcr, ycr = np.meshgrid(xc, yc)
-
-    # Horizontal indexes
-    i_indices = np.arange(0, nx).astype(np.int8)
-    j_indices = np.arange(0, ny).astype(np.int8)
-    I, J = np.meshgrid(i_indices, j_indices)
-
-    # Initialisation simple
-    # Vent uniforme
-    U, V = 10, 10
-
-    ############## Declaration des champs #############
-    vx, vy = (U * np.ones((nx, ny)), V * np.ones((nx, ny)))
-
-    # Champs de vent à t - dt
-    vx_p, vy_p = vx.copy(), vy.copy()
-
-    # Champs de vent à t + dt
-    vx_e, vy_e = (np.zeros((nx, ny)), np.zeros((nx, ny)))
-
-    # Tracer Gaussien
-    T = 20
-    rsq = (xcr - 25) ** 2 + (ycr - 25) ** 2
-
-    tracer = T * np.exp(-(rsq / (2 * 10)))
-    tracer_e = tracer.copy()
-
-    ###### Plot Initial Fields #####
-    fig = plot_2D_scalar_field(xcr, ycr, tracer, 25)
-    plt.show()
-    print(f"Step : {0}, Time : {0} s")
-    print(
-        f"Tracer : min {np.min(tracer)}, max {np.max(tracer)}, mean {np.mean(tracer)}"
-    )
-    imax, jmax = np.unravel_index(np.argmax(tracer, axis=None), tracer.shape)
-    print(f"Max of tracer field,  X : {xc[imax]:.2f} Y : {yc[jmax]:.2f}")
-
-    ########### Advection ##########
-    ######### Premier pas ##########
-
-    ######### jstep = 0 ##########
-
-    # Initialisation vitesses
-    vx_e, vy_e, vx, vy = sl_init(
-        vx_e=vx_e, vy_e=vy_e, vx=vx, vy=vy, vx_p=vx_p, vy_p=vy_p, LSETTLS=True
-    )
-
-    ######### jstep > 0 ##########
-    for jstep in range(0, NITMP):
-        # Copie des champs
-        vx, vy, tracer = backup(
-            vx=vx, vy=vy, vx_e=vx_e, vy_e=vy_e, tracer=tracer, tracer_e=tracer_e
-        )
-
-        # Estimations
-        vx_e, vy_e, tracer_e = sl_xy(
-            I=I,
-            J=J,
-            x=xcr,
-            y=ycr,
-            vx=vx,
-            vy=vy,
-            vx_e=vx_e,
-            vy_e=vy_e,
-            tracer=tracer,
-            tracer_e=tracer_e,
-            dt=dt,
-            dx=dx,
-            dy=dy,
-            nx=nx,
-            ny=ny,
-            bcx_kind=bcx_kind,
-            bcy_kind=bcy_kind,
-            xmin=xmin,
-            xmax=xmax,
-            ymin=ymin,
-            ymax=ymax
-        )
-
-        print(f"Step : {jstep}, Time : {jstep * dt} s")
-        print(
-            f"Tracer : min {np.min(tracer)}, max {np.max(tracer)}, mean {np.mean(tracer)}"
-        )
-
-        imax, jmax = np.unravel_index(np.argmax(tracer, axis=None), tracer.shape)
-        print(f"Max of tracer field,  X : {xc[imax]:.2f} Y : {yc[jmax]:.2f}")
-
-    #### Print ####
-    fig = plot_2D_scalar_field(xcr, ycr, tracer, 25)
-    plt.show()
-
-    print(
-        f"Tracer : min {np.min(tracer)}, max {np.max(tracer)}, mean {np.mean(tracer)}"
-    )
-    imax, jmax = np.unravel_index(np.argmax(tracer, axis=None), tracer.shape)
-    print(f"Max of tracer field,  X : {xc[imax]:.2f} Y : {yc[jmax]:.2f}")
