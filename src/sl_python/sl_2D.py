@@ -1,9 +1,10 @@
 from typing import Tuple
 import numpy as np
+import itertools
 
 
 def interpolate_linear_2d(
-    lx: np.float64, ly: np.float64, ii: np.int64, jj: np.int64, field: np.ndarray
+    lx: np.float64, ly: np.float64, ii: np.int64, jj: np.int64, field: np.ndarray, bc_kind: int
 ):
     """Interpolate sequentially on x axis and on y axis
 
@@ -20,8 +21,16 @@ def interpolate_linear_2d(
 
     px = np.array([p0(lx), p1(lx)])
     py = np.array([p0(ly), p1(ly)])
+    
+    if bc_kind == 0:
+        padded_field = np.pad(field, (1, 2), "edge")
+        
+    # Periodic
+    else:
+        padded_field = np.pad(field, (1, 2), "wrap")
 
-    return field[ii : ii + 2, jj : jj + 2] * px * py.T
+    return np.dot(np.matmul(padded_field[ii + 1 : ii + 3, jj + 1 : jj + 3], px), py)
+
 
 
 def interpolate_cubic_2d(
@@ -32,26 +41,22 @@ def interpolate_cubic_2d(
     Args:
         lx (np.float64): _description_
         ly (np.float64): _description_
-        ii (int): _descriptionsaliur
+        ii (int): _description_
         jj (int): _description_
         field (np.ndarray): _description_
 
     Returns:
         _type_: _description_
     """
-
+    
     # Padding on interpolation field
     # Fixed
     if bc_kind == 0:
         padded_field = np.pad(field, (1, 2), "edge")
-        ii += 1
-        jj += 1
-
+        
     # Periodic
     else:
         padded_field = np.pad(field, (1, 2), "wrap")
-        ii += 1
-        jj += 1
 
     # Polynomes de lagrange d'ordre 3
     p_1 = lambda l: (1/6) * l * (l - 1) * (2 - l) 
@@ -65,17 +70,12 @@ def interpolate_cubic_2d(
     assert(round(sum(px)) == 1)
     assert(round(sum(py)) == 1)
 
-    psi_hat = np.dot(np.matmul(padded_field[ii - 1 : ii + 3, jj - 1 : jj + 3], px), py)
-
-    return psi_hat
+    return np.dot(np.matmul(padded_field[ii : ii + 4, jj : jj + 4], px), py)
 
 
 def boundaries(
     bc_kind: int,
-    points: np.ndarray,
     indices: np.ndarray,
-    min: np.float64,
-    max: np.float64,
     n: int,
 ):
     """Apply boundary conditions on field.
@@ -102,7 +102,7 @@ def boundaries(
             + (n - 1) * right_exceed
         )
 
-    return indices.astype(np.int64)
+    return indices
 
 
 def lagrangian_search(
@@ -121,10 +121,6 @@ def lagrangian_search(
     ny: int,
     bcx_kind: int,
     bcy_kind: int,
-    xmin: np.float64,
-    xmax: np.float64,
-    ymin: np.float64,
-    ymax: np.float64,
     nsiter: int = 10,
 ) -> Tuple[np.ndarray]:
     """Research departure point for a given grid and velocity field.
@@ -138,45 +134,38 @@ def lagrangian_search(
     Returns:
         np.ndarray: departure point
     """
+    
+    vx_tmp = vx.copy()
+    vy_tmp = vy.copy()
 
     # Array declaration
     for l in range(0, nsiter):
         
-        if l == 0:
-            traj_x = 0.5 * dt * (vx_e + vx)
-            traj_y = 0.5 * dt * (vy_e + vy)
-
-        else:
-            traj_x = 0.5 * dt * (vx_e + vx_a)
-            traj_y = 0.5 * dt * (vy_e + vy_a)
-            
-        x_dep = x - traj_x
-        y_dep = y - traj_y
-
+        traj_x = (dt/2) * (vx_e + vx_tmp)
+        traj_y = (dt/2) * (vy_e + vy_tmp)       
+                
         lx = traj_x / dx - np.floor(traj_x / dx) 
         ly = traj_y / dy - np.floor(traj_y / dy)
         
-        i_d = I - np.floor(traj_x / dx)
-        j_d = J - np.floor(traj_y / dy)
-                
-        i_d = boundaries(bcx_kind, x_dep, i_d, xmin, xmax, nx)
-        j_d = boundaries(bcy_kind, y_dep, j_d, ymin, ymax, ny)
-                
+        i_d = np.floor(I - traj_x / dx).astype(np.int64)
+        j_d = np.floor(J - traj_y / dy).astype(np.int64)
+                    
+        i_d = boundaries(bcx_kind, i_d, nx)
+        j_d = boundaries(bcy_kind, j_d, ny)
+
         ####### Interpolation for fields ########
-        vx_a = np.zeros((nx, ny))
-        vy_a = np.zeros((nx, ny))
-        for i in range(nx):
-            for j in range(ny):
+        for i, j in itertools.product(range(nx), range(ny)):
             
                 # interpolation en r_d(l) -> i_d(l), j_d(l)
-                vx_a[i, j] = interpolate_cubic_2d(
+                vx_tmp[i, j] = interpolate_cubic_2d(
                     lx[i, j], ly[i, j], i_d[i, j], j_d[i, j], vx, bcx_kind
                 )
-                vy_a[i, j] = interpolate_cubic_2d(
-                    lx[i, j], ly[i, j], i_d[i, j], j_d[i, j], vy, bcx_kind
+                vy_tmp[i, j] = interpolate_cubic_2d(
+                    lx[i, j], ly[i, j], i_d[i, j], j_d[i, j], vy, bcy_kind
                 )
 
-    return lx, ly, i_d.astype(np.int64), j_d.astype(np.int64)
+    return lx, ly, i_d, j_d
+
 
 def sl_init(
     vx_e: np.ndarray,
@@ -222,10 +211,6 @@ def sl_xy(
     ny: int,
     bcx_kind: int,
     bcy_kind: int,
-    xmin: np.float64,
-    xmax: np.float64,
-    ymin: np.float64,
-    ymax: np.float64
 ):
     
     # Recherche semi lag
@@ -245,15 +230,10 @@ def sl_xy(
         ny=ny,
         bcx_kind=bcx_kind,
         bcy_kind=bcy_kind,
-        xmin=xmin,
-        xmax=xmax,
-        ymin=ymin,
-        ymax=ymax
     )
     
     # Interpolate
-    for i in range(nx):
-        for j in range(ny):
+    for i, j in itertools.product(range(nx), range(ny)):
             
             # Interpolate tracer in T(r, t) = T(r_d, t - dt)
             tracer_e[i, j] = interpolate_cubic_2d(
@@ -267,7 +247,7 @@ def sl_xy(
             vy_e[i, j] = interpolate_cubic_2d(
                 lx=lx_d[i, j], ly=ly_d[i, j], ii=i_d[i, j], jj=j_d[i, j], field=vy, bc_kind=bcx_kind
             )
-
+            
     return vx_e, vy_e, tracer_e
 
 
