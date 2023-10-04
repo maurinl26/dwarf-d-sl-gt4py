@@ -11,16 +11,16 @@ from sl_python.sl_2D import sl_init, sl_xy, backup
 from sl_python.plot import plot_2D_scalar_field
 
 
-def main(lsettls: bool, nsiter: int, nitmp: int):
+def run_sl_2D(lsettls: bool, nsiter: int, nitmp: int):
     lnesc = not lsettls
     
     dt = 1
     dth = dt / 2
 
     # Grid
-    xmin, xmax = 0, 19
-    ymin, ymax = 0, 19
-    nx, ny = 20, 20
+    xmin, xmax = 0, 29
+    ymin, ymax = 0, 29
+    nx, ny = 30, 30
 
     # Boundaries
     # 1 : PERIODIC
@@ -35,6 +35,9 @@ def main(lsettls: bool, nsiter: int, nitmp: int):
     dx = xc[1] - xc[0]
     dy = yc[1] - yc[0]
     
+    print(f"dt : {dt}")
+    print(f"dx : {dx}, dy : {dy}")
+    
     xcr, ycr = np.meshgrid(xc, yc)
 
     # Horizontal indexes
@@ -44,7 +47,7 @@ def main(lsettls: bool, nsiter: int, nitmp: int):
     
     # Initialisation simple
     # Vent uniforme
-    U, V = 1, 1
+    U, V = 0, 1.5
 
     ############## Declaration des champs #############
     vx, vy = (U * np.ones((nx, ny)), V * np.ones((nx, ny)))
@@ -57,13 +60,13 @@ def main(lsettls: bool, nsiter: int, nitmp: int):
     
     # Tracer Gaussien
     T = 20
-    rsq = (xcr - 5) ** 2 + (ycr - 5) ** 2
+    rsq = (xcr - 6) ** 2 + (ycr - 6) ** 2
 
     tracer = T * np.exp(-(rsq / (2 * 2)))
     tracer_e = tracer.copy()
     
     ###### Plot Initial Fields #####
-    fig = plot_2D_scalar_field(xcr, ycr, tracer, 25)
+    plot_2D_scalar_field(xcr, ycr, tracer, 25)
     plt.show()
     print(f"Step : Initialisation, Time : {0} s")
     print(
@@ -83,7 +86,7 @@ def main(lsettls: bool, nsiter: int, nitmp: int):
     )
 
     ######### jstep > 0 ##########
-    for jstep in range(0, NITMP):
+    for jstep in range(0, nitmp):
         # Copie des champs
         vx, vy, tracer = backup(
             vx=vx, vy=vy, vx_e=vx_e, vy_e=vy_e, tracer=tracer, tracer_e=tracer_e
@@ -93,8 +96,6 @@ def main(lsettls: bool, nsiter: int, nitmp: int):
         vx_e, vy_e, tracer_e = sl_xy(
             I=I.T,
             J=J.T,
-            x=xcr,
-            y=ycr,
             vx=vx,
             vy=vy,
             vx_e=vx_e,
@@ -107,7 +108,8 @@ def main(lsettls: bool, nsiter: int, nitmp: int):
             nx=nx,
             ny=ny,
             bcx_kind=bcx_kind,
-            bcy_kind=bcy_kind
+            bcy_kind=bcy_kind,
+            nsiter=nsiter
         )
         
         fig = plot_2D_scalar_field(xcr.T, ycr.T, tracer, 25)
@@ -123,7 +125,7 @@ def main(lsettls: bool, nsiter: int, nitmp: int):
         print(f"Max of tracer field,  X : {xc[imax]:.2f} Y : {yc[jmax]:.2f}")
 
     #### Print ####
-    fig = plot_2D_scalar_field(xcr.T, ycr.T, tracer, 25)
+    plot_2D_scalar_field(xcr.T, ycr.T, tracer, 25)
     plt.grid()
     plt.show()
 
@@ -136,7 +138,7 @@ def main(lsettls: bool, nsiter: int, nitmp: int):
 
 if __name__ == "__main__":
     LSETTLS = True
-    NITMP = 20
+    NITMP = 21
     NSITER = 5
 
-    main(LSETTLS, NSITER, NITMP)
+    run_sl_2D(LSETTLS, NSITER, NITMP)

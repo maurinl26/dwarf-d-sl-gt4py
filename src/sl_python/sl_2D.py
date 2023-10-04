@@ -104,12 +104,9 @@ def boundaries(
 
     return indices
 
-
 def lagrangian_search(
     I: np.ndarray,
     J: np.ndarray,
-    x: np.ndarray,
-    y: np.ndarray,
     vx: np.ndarray,
     vy: np.ndarray,
     vx_e: np.ndarray,
@@ -194,10 +191,8 @@ def sl_init(
 
 
 def sl_xy(
-    I,
-    J,
-    x,
-    y,
+    I: np.ndarray,
+    J: np.ndarray,
     vx: np.ndarray,
     vy: np.ndarray,
     vx_e: np.ndarray,
@@ -211,12 +206,11 @@ def sl_xy(
     ny: int,
     bcx_kind: int,
     bcy_kind: int,
+    nsiter: int
 ):
     
     # Recherche semi lag
     lx_d, ly_d, i_d, j_d = lagrangian_search(
-        x=x,
-        y=y,
         I=I,
         J=J,
         vx_e=vx_e,
@@ -230,6 +224,7 @@ def sl_xy(
         ny=ny,
         bcx_kind=bcx_kind,
         bcy_kind=bcy_kind,
+        nsiter=nsiter
     )
     
     # Interpolate
