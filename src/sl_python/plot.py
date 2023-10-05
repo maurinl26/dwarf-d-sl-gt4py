@@ -24,9 +24,12 @@ def plot_2D_scalar_field(xcr: np.ndarray, ycr: np.ndarray, scalar_field: np.ndar
         extend="neither",
         levels=levels,
     )
+    ax.set_xlabel("X")
+    ax.set_ylabel("Y")
     fig.colorbar(cnt, ax=ax, extend="neither")
+    plt.show()
+    
 
-    return fig
-
-
+    
+    
     
