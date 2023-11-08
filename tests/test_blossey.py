@@ -5,8 +5,8 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 
-sys.path.append("/home/maurinl/FVM_GT4Py_slim/src")
-sys.path.append("/home/maurinl/sl_gt4py/src")
+sys.path.append("/workspace/sl_gt4py/src")
+print(sys.path)
 
 from sl_python.interpolation import interpolate_cubic_2d
 from sl_python.sl_2D import sl_init, sl_xy
@@ -34,11 +34,11 @@ def u(r, t, T):
     )
 
 
-def cfl_1d(u: np.float64, dx: np.float64, dt: np.float64):
+def cfl_1d(u: float, dx: float, dt: float):
     return u * dt / dx
 
 
-def tracer_shape(x: np.float64, y: np.float64, tracer0: np.float64):
+def tracer_shape(x: float, y: float, tracer0: float):
     r_t = r_tilde(x, y)
     return np.where(r_t < 1, tracer0 + ((1 + np.cos(np.pi * r_t)) / 2) ** 2, tracer0)
 
@@ -53,14 +53,14 @@ def polar_coordinates(xcr: np.ndarray, ycr: np.ndarray):
 def blossey_stf(
     xcr: np.ndarray,
     ycr: np.ndarray,
-    mt: np.float64
+    mt: float
 )-> np.ndarray:
     """Compute blossey stream function as described by 
     Durran & Blossey (Selective monotonicity preservation in scalar advection)
 
     Args:
-        t (np.float64): _description_
-        T (np.float64): _description_
+        t (float): _description_
+        T (float): _description_
         r (np.ndarray): _description_
 
     Returns:
@@ -80,8 +80,8 @@ def blossey_stf(
 # Taken from Christian
 def stream_function_xy(
     stf: np.ndarray,
-    dx: np.float,
-    dy: np.float
+    dx: float,
+    dy: float
 ):
     
     dstf_dx, dstf_dy = np.gradient(stf)
@@ -96,7 +96,7 @@ def blossey_velocity(
     rcr, thetacr = polar_coordinates(xcr, ycr)
 
     stf = blossey_stf(xcr, ycr, mt)
-    u, v = stream_function_xy(str, dx, dy)
+    u, v = stream_function_xy(stf, dx, dy)
 
     return u, v
 
@@ -150,11 +150,7 @@ def sl_driver(
         logging.info(f"Step : {jstep}")
 
         tracer = backup(tracer=tracer, tracer_e=tracer_e)
-
-        vx, vy = blossey_velocity(vx, vy, mt, dx, dy)
-        
-        plot_blossey(config.xcr, config.ycr, vx, vy, tracer)
-        
+        vx, vy = blossey_velocity(config.xcr, config.ycr, t, config.dx, config.dy)        
 
         # Estimations
         vx_e, vy_e, tracer_e = sl_xy(
@@ -174,9 +170,6 @@ def sl_driver(
         courant_xmax = np.max(cfl_1d(vx, config.dx, config.dt))
         courant_ymax = np.max(cfl_1d(vy, config.dy, config.dt))
     
-        np.save(f"tracer_{jstep}", tracer)
-        plot_blossey(config.xcr, config.ycr, vx, vy, tracer)
-
         logging.info(f"Maximum courant number : {max(courant_xmax, courant_ymax)}")
 
     e_inf = np.max(np.abs(tracer - tracer_ref))
@@ -186,11 +179,11 @@ def sl_driver(
     logging.info(f"Error RMSE : {e_2}")
     
     
-    plot_blossey(config.xcr, config.ycr, vx, vy, tracer)
+    plot_blossey(config.xcr, config.ycr, vx, vy, tracer, t)
     
     
 def plot_blossey(
-    xcr: np.ndarray, ycr: np.ndarray, vx: np.ndarray, vy: np.ndarray, tracer: np.ndarray
+    xcr: np.ndarray, ycr: np.ndarray, vx: np.ndarray, vy: np.ndarray, tracer: np.ndarray, t: float
     ):
     
     # Shape
@@ -203,7 +196,7 @@ def plot_blossey(
     levels = [0.05 + i * 0.1 for i in range(0, 10)]
     ax.contour(xcr, ycr, tracer, colors="black", vmin=0.05, vmax=0.95, levels=levels)
     
-    plt.show()
+    plt.savefig(f"blossey_{str(t)}.pdf")
 
 if __name__ == "__main__":
     
@@ -213,7 +206,7 @@ if __name__ == "__main__":
 
     model_starttime = 0
     model_endtime = 1
-    nitmp = 200
+    nitmp = 200 * 12
     dt = (model_endtime - model_starttime) / nitmp
     xmin, xmax = 0, 1
     ymin, ymax = 0, 1
@@ -224,9 +217,9 @@ if __name__ == "__main__":
 
     config = Config(1, xmin, xmax, nx, ymin, ymax, ny, bcx_kind, bcy_kind)
 
-    vx, vy, vx_p, vy_p, vx_e, vy_e = init_blossey(config.xcr, config.ycr, t, T)
+    vx, vy, vx_p, vy_p, vx_e, vy_e = init_blossey(config.xcr, config.ycr, t, config.dx, config.dy, config.nx, config.ny)
     tracer, tracer_e = blossey_tracer(config.xcr, config.ycr)
-    plot_blossey(config.xcr, config.ycr, tracer, 50)
+    plot_blossey(config.xcr, config.ycr, vx, vy, tracer, 0)
 
 
     # Advection encapsulation
