@@ -147,7 +147,7 @@ def sl_driver(
     
         t = jstep * config.dt
         logging.info(f"Step : {jstep}")
-        logging.info(f"Step : {jstep}")
+        logging.info(f"Time : {100*t/T:.02f}%")
 
         tracer = backup(tracer=tracer, tracer_e=tracer_e)
         vx, vy = blossey_velocity(config.xcr, config.ycr, t, config.dx, config.dy)        
@@ -167,16 +167,20 @@ def sl_driver(
 
 
         # Diagnostics and outputs
-        courant_xmax = np.max(cfl_1d(vx, config.dx, config.dt))
-        courant_ymax = np.max(cfl_1d(vy, config.dy, config.dt))
+        courant_xmax = np.max(cfl_1d(vx_e, config.dx, config.dt))
+        courant_ymax = np.max(cfl_1d(vy_e, config.dy, config.dt))
     
-        logging.info(f"Maximum courant number : {max(courant_xmax, courant_ymax)}")
+        logging.info(f"Maximum courant number : {max(courant_xmax, courant_ymax):.02f}")
+
+        epsilon = dt / 2
+        if t >= (T / 2) and t < (T / 2) + epsilon:
+            plot_blossey(config.xcr, config.ycr, vx, vy, tracer, t)
 
     e_inf = np.max(np.abs(tracer - tracer_ref))
     e_2 = np.sqrt((1 / (config.nx * config.ny)) * np.sum((tracer - tracer_ref) ** 2))
 
     logging.info(f"Error E_inf : {e_inf}")
-    logging.info(f"Error RMSE : {e_2}")
+    logging.info(f"Error E_2 : {e_2}")
     
     
     plot_blossey(config.xcr, config.ycr, vx, vy, tracer, t)
@@ -206,7 +210,7 @@ if __name__ == "__main__":
 
     model_starttime = 0
     model_endtime = 1
-    nitmp = 200 * 12
+    nitmp = 50
     dt = (model_endtime - model_starttime) / nitmp
     xmin, xmax = 0, 1
     ymin, ymax = 0, 1
@@ -215,7 +219,9 @@ if __name__ == "__main__":
     lsettls = False
     bcx_kind, bcy_kind = 1, 1
 
-    config = Config(1, xmin, xmax, nx, ymin, ymax, ny, bcx_kind, bcy_kind)
+    logging.info(f"time step dt : {dt}s")
+
+    config = Config(dt, xmin, xmax, nx, ymin, ymax, ny, bcx_kind, bcy_kind)
 
     vx, vy, vx_p, vy_p, vx_e, vy_e = init_blossey(config.xcr, config.ycr, t, config.dx, config.dy, config.nx, config.ny)
     tracer, tracer_e = blossey_tracer(config.xcr, config.ycr)
