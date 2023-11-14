@@ -199,6 +199,8 @@ def sl_driver(
     logging.info(f"Error E_2 : {e_2}")
 
     plot_blossey(config.xcr, config.ycr, vx, vy, tracer, t)
+    
+    plot_tracer_against_reference(config.xcr, config.ycr, vx, vy, tracer, tracer_ref, e_2, e_inf)
 
 
 def plot_blossey(
@@ -225,11 +227,42 @@ def plot_blossey(
         width=0.002,
     )
     ax.set(xlim=(0, 1), ylim=(0, 1))
+    ax.axis("equal")
 
     levels = [0.05 + i * 0.1 for i in range(0, 10)]
     ax.contour(xcr, ycr, tracer, colors="black", vmin=0.05, vmax=0.95, levels=levels, linewidths=1)
 
     plt.savefig(f"./figures/blossey/blossey_{t:.03f}.pdf")
+    
+def plot_tracer_against_reference(
+    xcr: np.ndarray,
+    ycr: np.ndarray,
+    vx: np.ndarray,
+    vy: np.ndarray,
+    tracer: np.ndarray,
+    tracer_ref: float,
+    e2: float,
+    einf: float
+    ):
+    
+    # Shape
+    fig, ax = plt.subplots()
+
+    ax.set(xlim=(0, 1), ylim=(0, 1))
+    ax.axis("equal")
+
+    levels = [0.05 + i * 0.1 for i in range(0, 10)]
+    ax.contour(xcr, ycr, tracer, colors="black", vmin=0.05, vmax=0.95, levels=levels, linewidths=1)
+    
+    levels_ref = [0.05, 0.75]
+    ax.contour(xcr, ycr, tracer_ref, colors="blue", vmin=0.05, vmax=0.95, levels=levels_ref, linewidths=1)
+    
+    
+    ax.text(0.0 ,0.01, f" E2 = {e2:.03f} \n Einf = {einf:.03f}")
+    ax.text(0.90, 0.01, f" Max = {np.max(tracer):.03f} \n Min = {np.min(tracer):.03f}")
+    
+
+    fig.savefig(f"./figures/blossey/blossey_ref.pdf")
 
 
 if __name__ == "__main__":
@@ -239,15 +272,16 @@ if __name__ == "__main__":
 
     model_starttime = 0
     model_endtime = 1
-    nstep = 50
-    dt = (model_endtime - model_starttime) / nstep
+    dt = 0.02
+    nstep = np.ceil((model_endtime - model_starttime) / dt)
     xmin, xmax = 0, 1
     ymin, ymax = 0, 1
     nx, ny = 50, 50
     lsettls = True
     bcx_kind, bcy_kind = 1, 1
 
-    logging.info(f"time step dt : {dt:.06f} s")
+    logging.info(f"Time step dt : {dt:.06f} s")
+    logging.info(f"N steps : {nstep:.06f} s")
 
     config = Config(dt, xmin, xmax, nx, ymin, ymax, ny, bcx_kind, bcy_kind)
 
