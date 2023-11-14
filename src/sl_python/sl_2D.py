@@ -7,10 +7,37 @@ from config import Config
 
 logging.getLogger(__name__)
 
+def dep_search_1d(
+    I: np.ndarray,
+    vx_e: np.ndarray,
+    vx_tmp: np.ndarray,
+    dx: np.ndarray,
+    dth: float
+) -> Tuple[np.ndarray]:
+    """Compute departure point coordinate (1d)
+    
+    Args:
+        I (np.ndarray): _description_
+        vx_e (np.ndarray): velocity at arrival point (t + dt)
+        vx_tmp (np.ndarray): estimate of velocity at departure point
+        dx (np.ndarray): grid spacing
+        dth (float): half model time step
+
+    Returns:
+        Tuple[np.ndarray]: 
+            i_d: indice of departure point on grid 
+            lx: adimensionned spacing of departure point from ref grid point 
+    """
+    
+    # Deplacement
+    trajx = - dth * (vx_e + vx_tmp) / dx # dth = dt / 2
+    i_d = (I + np.floor(trajx)).astype(int)
+    lx = trajx - np.floor(trajx)
+                
+    return lx, i_d
+
 
 def departure_search(
-    xcr: np.ndarray,
-    ycr: np.ndarray, 
     I: np.ndarray,
     J: np.ndarray,
     vx_e: np.ndarray,
@@ -20,7 +47,6 @@ def departure_search(
     dth: float,
     dx: float,
     dy: float,
-    epsilon: float
 ) -> Tuple[np.ndarray]:
     """Compute departure points coordinates, with respect 
     to nearest grid points. 
@@ -45,22 +71,10 @@ def departure_search(
                 id, jd -> indices from  ref grid points (near from departure point)
     """
     
-    x_d = xcr - dth * (vx_e + vx_tmp) 
-    y_d = ycr - dth * (vy_e + vy_tmp)
-        
-    lx = (xcr - x_d) / dx
-    ly = (ycr - y_d) / dy
-        
-    i_dep = np.where(abs(lx) < epsilon, 0, np.floor(lx)).astype(int)
-    j_dep = np.where(abs(ly) < epsilon, 0, np.floor(ly)).astype(int)
-    
-    lx = - lx - (i_dep + 1)
-    ly = - ly - (j_dep + 1)
-     
-    i_d = I - i_dep
-    j_d = J - j_dep   
-    
-    return lx, ly, I - i_d, J - j_d
+    lx, i_d = dep_search_1d(I, vx_e, vx_tmp, dx, dth)
+    ly, j_d = dep_search_1d(J, vy_e, vy_tmp, dy, dth)
+   
+    return lx, ly, i_d, j_d
     
 
 # ELARCHE
@@ -92,8 +106,6 @@ def lagrangian_search(
     for l in range(nitmp):
         
         lx, ly, i_d, j_d = departure_search(
-            config.xcr,
-            config.ycr,
             config.I,
             config.J,
             vx_e,
@@ -103,7 +115,6 @@ def lagrangian_search(
             config.dth,
             config.dx,
             config.dy,
-            np.finfo(float).eps
         )
 
         ####### Interpolation for fields ########

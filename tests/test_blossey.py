@@ -5,13 +5,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 
-sys.path.append("/workspace/sl_gt4py/src")
+sys.path.append("/home/maurinl/sl_gt4py/src")
 print(sys.path)
 
-from sl_python.interpolation import interpolate_cubic_2d
+from sl_python.interpolation import interpolate_cub_2d
 from sl_python.sl_2D import sl_init, sl_xy
 from config import Config
-from sl_python.plot import plot_2D_scalar_field
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
@@ -134,8 +133,9 @@ def sl_driver(
     tracer: np.ndarray, 
     tracer_e: np.ndarray, 
     lsettls: bool, 
-    nitmp: int
-):
+    model_starttime: float,
+    model_endtime: float
+    ):
     tracer_ref = tracer.copy()
 
     # Advection
@@ -143,17 +143,18 @@ def sl_driver(
         vx_e=vx_e, vy_e=vy_e, vx=vx, vy=vy, vx_p=vx_p, vy_p=vy_p, lsettls=lsettls
     )
 
-    for jstep in range(nitmp):
-    
-        t = jstep * config.dt
+    t = model_starttime
+    jstep = 0
+    while t < model_endtime:
+        jstep += 1
+        t += config.dt
         logging.info(f"Step : {jstep}")
-        logging.info(f"Time : {100*t/T:.02f}%")
+        logging.info(f"Time : {100*t/model_endtime:.02f}%")
 
-        tracer = backup(tracer=tracer, tracer_e=tracer_e)
         vx, vy = blossey_velocity(config.xcr, config.ycr, t, config.dx, config.dy)        
 
         # Estimations
-        vx_e, vy_e, tracer_e = sl_xy(
+        tracer_e = sl_xy(
             config=config,
             vx=vx,
             vy=vy,
@@ -161,10 +162,11 @@ def sl_driver(
             vy_e=vy_e,
             tracer=tracer,
             tracer_e=tracer_e,
-            interpolation_function=interpolate_cubic_2d,
-            nsiter=4
+            interpolation_function=interpolate_cub_2d,
+            nitmp=4
         )
-
+        
+        tracer = backup(tracer=tracer, tracer_e=tracer_e)
 
         # Diagnostics and outputs
         courant_xmax = np.max(cfl_1d(vx_e, config.dx, config.dt))
@@ -172,8 +174,7 @@ def sl_driver(
     
         logging.info(f"Maximum courant number : {max(courant_xmax, courant_ymax):.02f}")
 
-        epsilon = dt / 2
-        if t >= (T / 2) and t < (T / 2) + epsilon:
+        if t >= (T / 2) and t < (T / 2) + config.dth:
             plot_blossey(config.xcr, config.ycr, vx, vy, tracer, t)
 
     e_inf = np.max(np.abs(tracer - tracer_ref))
@@ -194,13 +195,13 @@ def plot_blossey(
     fig, ax = plt.subplots()
     
     # Vent
-    ax.quiver(xcr, ycr, vx, vy, color="C0", angles="xy", scale_units="xy", scale=1, width=0.001)
+    ax.quiver(xcr[::2, ::2], ycr[::2, ::2], vx[::2, ::2], vy[::2, ::2], color="C0", angles="xy", scale_units="xy", scale=5, width=0.002)
     ax.set(xlim=(0, 1), ylim=(0, 1))
     
     levels = [0.05 + i * 0.1 for i in range(0, 10)]
     ax.contour(xcr, ycr, tracer, colors="black", vmin=0.05, vmax=0.95, levels=levels)
     
-    plt.savefig(f"blossey_{str(t)}.pdf")
+    plt.savefig(f"./figures/blossey/blossey_{t:.03f}.pdf")
 
 if __name__ == "__main__":
     
@@ -210,8 +211,9 @@ if __name__ == "__main__":
 
     model_starttime = 0
     model_endtime = 1
-    nitmp = 50
-    dt = (model_endtime - model_starttime) / nitmp
+    nstep = 50
+    nitmp = 4
+    dt = (model_endtime - model_starttime) / nstep
     xmin, xmax = 0, 1
     ymin, ymax = 0, 1
     nx = 50
@@ -219,7 +221,7 @@ if __name__ == "__main__":
     lsettls = False
     bcx_kind, bcy_kind = 1, 1
 
-    logging.info(f"time step dt : {dt}s")
+    logging.info(f"time step dt : {dt:.06f} s")
 
     config = Config(dt, xmin, xmax, nx, ymin, ymax, ny, bcx_kind, bcy_kind)
 
@@ -230,6 +232,6 @@ if __name__ == "__main__":
 
     # Advection encapsulation
     start_time = time.time()
-    sl_driver(config, vx, vy, vx_e, vy_e, vx_p, vy_p, tracer, tracer_e, lsettls, nitmp)
+    sl_driver(config, vx, vy, vx_e, vy_e, vx_p, vy_p, tracer, tracer_e, lsettls, model_starttime, model_endtime)
     duration = time.time() - start_time
     logging.info(f"Duration : {duration} s")

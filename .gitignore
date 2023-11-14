@@ -1,5 +1,7 @@
 /data
 __pycache__
 .vscode
+sl_venv
+.pytest_cache
 
 index.txt
