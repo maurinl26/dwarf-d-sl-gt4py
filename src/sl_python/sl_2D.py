@@ -3,7 +3,7 @@ import numpy as np
 import itertools
 
 from config import Config
-from sl_python.interpolation import interpolate_lin_2d
+from sl_python.interpolation import interpolate_lin_2d, interpolate_cub_2d
 
 def boundaries(
     bc_kind: int,
@@ -49,12 +49,30 @@ def departure_search(
     dth: float,
     dx: float,
     dy: float,
-    bcx_kind: int,
-    bcy_kind: int,
-    nx: int, 
-    ny: int,
     epsilon: float
-):
+) -> Tuple[np.ndarray]:
+    """Compute departure points coordinates, with respect 
+    to nearest grid points. 
+
+    Args:
+        xcr (np.ndarray): x coordinates of gridpoints
+        ycr (np.ndarray): y coordinates of gridpoints
+        I (np.ndarray): indices of grid points (x direction)
+        J (np.ndarray): indices of grid points (y direction)
+        vx_e (np.ndarray): velocity on x at t + dt (ebauche)
+        vy_e (np.ndarray): velocity on y at t + dt (ebauche)
+        vx_tmp (np.ndarray): velocity on x at t for updated departure point
+        vy_tmp (np.ndarray): velocity on y at t for updated departure point
+        dth (float): half time step
+        dx (float): x spacing on grid
+        dy (float): y spacing on grid
+        epsilon (float): machine minimum
+
+    Returns:
+        Tuple[np.ndarray]: 
+                lx, ly -> distance from departure point to grid point, 
+                id, jd -> indices from  ref grid points (near from departure point)
+    """
     
     x_d = xcr - dth * (vx_e + vx_tmp) 
     y_d = ycr - dth * (vy_e + vy_tmp)
@@ -122,7 +140,7 @@ def lagrangian_search(
         )
 
         ####### Interpolation for fields ########
-        vx_tmp = interpolate_lin_2d(
+        vx_tmp = interpolation_function(
             vx,
             lx, 
             ly,
@@ -134,7 +152,7 @@ def lagrangian_search(
             config.ny
         )
         
-        vy_tmp = interpolate_lin_2d(
+        vy_tmp = interpolation_function(
             vy,
             lx, 
             ly,
@@ -158,6 +176,22 @@ def sl_init(
     vy_p: np.ndarray,
     lsettls: bool = True,
 ) -> Tuple[np.ndarray]:
+    """Initialize draft velocities with either 
+    LSETTLS method : 2 fields for velocity (at t and t - dt)
+    LNESN (not LSETTLS) method : 1 field for velocity (at t)
+
+    Args:
+        vx_e (np.ndarray): outlined velocity at t + dt on x
+        vy_e (np.ndarray): outlined velocity at t + dt on y
+        vx (np.ndarray): velocity at t on x
+        vy (np.ndarray): velocity at t on y
+        vx_p (np.ndarray): velocity at t - dt on x
+        vy_p (np.ndarray): velcoity at t - dt on y 
+        lsettls (bool, optional): LSETTLS or LNESC. Defaults to True.
+
+    Returns:
+        Tuple[np.ndarray]: velocities at t and t + dt
+    """
     # LSETTLS
     if lsettls:
         vx_e = vx.copy()
@@ -183,19 +217,24 @@ def sl_xy(
     tracer_e: np.ndarray,
     interpolation_function: callable,
     nitmp: int,
-):
-    """Interpolate only tracers
+) -> np.ndarray:
+    """Performs tracer advection with 2D semi lagrangian.
+    1: search for departure point
+    2: interpolate tracer field
 
     Args:
-        config (Config): _description_
-        vx (np.ndarray): _description_
-        vy (np.ndarray): _description_
-        vx_e (np.ndarray): _description_
-        vy_e (np.ndarray): _description_
-        tracer (np.ndarray): _description_
-        tracer_e (np.ndarray): _description_
-        interpolation_function (callable): _description_
-        nsiter (int): _description_
+        config (Config): grid configuration
+        vx (np.ndarray): velocity on x 
+        vy (np.ndarray): velocity on y 
+        vx_e (np.ndarray): velocity on x at t + dt
+        vy_e (np.ndarray): velocity on y at t + dt
+        tracer (np.ndarray): tracer field 
+        tracer_e (np.ndarray): tracer at t + dt (ebauche)
+        interpolation_function (callable): linear or cubic interpolation
+        nitmp (int): number of iterations for departure search
+        
+    Returns:
+        np.ndarray: tracer outline (ebauche) at t + dt 
     """
     
     # Recherche semi lag
@@ -210,7 +249,7 @@ def sl_xy(
     )
 
     # Interpolate
-    tracer_e = interpolate_lin_2d(
+    tracer_e = interpolation_function(
         tracer,
         lx_d, 
         ly_d,

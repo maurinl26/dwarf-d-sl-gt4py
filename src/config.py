@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from build import dtype
 
 import numpy as np
@@ -7,6 +7,7 @@ import numpy as np
 class Config:
     
     dt: dtype
+    dth: dtype = field(init=False)
     
     xmin: dtype
     xmax: dtype
@@ -27,10 +28,10 @@ class Config:
                 
     def indices(self):
         
-        i_indices = np.arange(self.nx)
-        j_indices = np.arange(self.ny)
+        self.i_indices = np.arange(self.nx)
+        self.j_indices = np.arange(self.ny)
         
-        I, J = np.meshgrid(i_indices, j_indices)
+        I, J = np.meshgrid(self.i_indices, self.j_indices)
         self.I, self.J = I.T, J.T
         
     def coordinates(self):
@@ -45,5 +46,23 @@ class Config:
         self.xcr, self.ycr = xcr.T, ycr.T 
         
         
-        
-        
+if __name__ == "__main__":
+    
+    
+    config = Config(
+        dt=1,
+        xmin=0,
+        xmax=100,
+        ymin=0,
+        ymax=100,
+        nx=50,
+        ny=50,
+        bcx_kind=0,
+        bcy_kind=0
+    )
+    
+    print(config.xc[0], config.xc[-1], len(config.xc))
+    print(config.yc[0], config.yc[-1], len(config.yc))
+    
+    print(config.I[0, 0], config.I[-1, 0], config.I.shape)
+    print(config.J[0, 0], config.J[0, -1], config.J.shape)
