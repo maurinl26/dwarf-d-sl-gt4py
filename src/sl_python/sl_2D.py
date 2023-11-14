@@ -40,6 +40,8 @@ def boundaries(
 def departure_search(
     xcr: np.ndarray,
     ycr: np.ndarray, 
+    I: np.ndarray,
+    J: np.ndarray,
     vx_e: np.ndarray,
     vy_e: np.ndarray,
     vx_tmp: np.ndarray,
@@ -60,16 +62,16 @@ def departure_search(
     lx = (xcr - x_d) / dx
     ly = (ycr - y_d) / dy
         
-    i_d = np.where(abs(lx) < epsilon, 0, np.floor(lx))
-    j_d = np.where(abs(ly) < epsilon, 0, np.floor(ly))
+    i_dep = np.where(abs(lx) < epsilon, 0, np.floor(lx)).astype(int)
+    j_dep = np.where(abs(ly) < epsilon, 0, np.floor(ly)).astype(int)
     
-    lx = -lx - (i_d + 1)
-    ly = -ly - (j_d + 1)
+    lx = - lx - (i_dep + 1)
+    ly = - ly - (j_dep + 1)
+     
+    i_d = I - i_dep
+    j_d = J - j_dep   
     
-    i_d = boundaries(bcx_kind, i_d, nx)
-    j_d = boundaries(bcy_kind, j_d, ny)
-    
-    return lx, ly, i_d, j_d
+    return lx, ly, I - i_d, J - j_d
     
 
 # ELARCHE
@@ -98,16 +100,20 @@ def lagrangian_search(
     vy_tmp = vy.copy()
 
     # Array declaration
-    for l in range(0, nitmp):
+    for l in range(nitmp):
         
         lx, ly, i_d, j_d = departure_search(
             config.xcr,
             config.ycr,
+            config.I,
+            config.J,
             vx_e,
             vy_e,
             vx_tmp,
             vy_tmp,
             config.dth,
+            config.dx,
+            config.dy,
             config.bcx_kind,
             config.bcy_kind,
             config.nx,
@@ -167,7 +173,7 @@ def sl_init(
 
     return vx, vy, vx_e, vy_e
 
-def sl_xy_tracer(
+def sl_xy(
     config: Config,
     vx: np.ndarray,
     vy: np.ndarray,
@@ -176,7 +182,7 @@ def sl_xy_tracer(
     tracer: np.ndarray,
     tracer_e: np.ndarray,
     interpolation_function: callable,
-    nsiter: int,
+    nitmp: int,
 ):
     """Interpolate only tracers
 
@@ -200,7 +206,7 @@ def sl_xy_tracer(
         vx=vx,
         vy=vy,
         interpolation_function=interpolation_function,
-        nsiter=nsiter,
+        nitmp=nitmp,
     )
 
     # Interpolate
@@ -217,66 +223,6 @@ def sl_xy_tracer(
     )
     
     return tracer_e
-
-
-def sl_xy(
-    config: Config,
-    vx: np.ndarray,
-    vy: np.ndarray,
-    vx_e: np.ndarray,
-    vy_e: np.ndarray,
-    tracer: np.ndarray,
-    tracer_e: np.ndarray,
-    interpolation_function: callable,
-    nsiter: int,
-):
-    # Recherche semi lag
-    lx_d, ly_d, i_d, j_d = lagrangian_search(
-        config=config,
-        vx_e=vx_e,
-        vy_e=vy_e,
-        vx=vx,
-        vy=vy,
-        interpolation_function=interpolation_function,
-        nsiter=nsiter,
-    )
-    
-    # Interpolation
-    tracer_e = interpolate_lin_2d(
-        tracer,
-        lx_d, 
-        ly_d,
-        i_d, 
-        j_d,
-        config.bcx_kind,
-        config.bcy_kind,
-        config.nx, 
-        config.ny
-    )
-    vx_e = interpolate_lin_2d(
-        vx,
-        lx_d, 
-        ly_d,
-        i_d, 
-        j_d,
-        config.bcx_kind,
-        config.bcy_kind,
-        config.nx, 
-        config.ny
-    )
-    vy_e = interpolate_lin_2d(
-        vy,
-        lx_d, 
-        ly_d,
-        i_d, 
-        j_d,
-        config.bcx_kind,
-        config.bcy_kind,
-        config.nx, 
-        config.ny
-    )
-
-    return vx_e, vy_e, tracer_e
 
 
 def backup(
