@@ -1,40 +1,11 @@
 from typing import Tuple
 import numpy as np
-import itertools
+import logging
+import sys
 
 from config import Config
-from sl_python.interpolation import interpolate_lin_2d, interpolate_cub_2d
 
-def boundaries(
-    bc_kind: int,
-    indices: np.ndarray,
-    n: int,
-):
-    """Apply boundary conditions on field.
-
-    Args:
-        bc_kind (int): _description_
-        field (np.ndarray): _description_
-        min (np.float): _description_
-        max (np.float): _description_
-        nx (int): _description_
-    """
-    left_exceed = indices >= n
-    right_exceed = indices < 0
-
-    # Periodic boundaries
-    if bool(bc_kind):
-        indices %= n
-
-    # Fixed boundaries
-    else:
-        indices = (
-            indices * (1 - right_exceed) * (1 - left_exceed)
-            + 0 * left_exceed
-            + (n - 1) * right_exceed
-        )
-
-    return indices
+logging.getLogger(__name__)
 
 
 def departure_search(
@@ -132,10 +103,6 @@ def lagrangian_search(
             config.dth,
             config.dx,
             config.dy,
-            config.bcx_kind,
-            config.bcy_kind,
-            config.nx,
-            config.ny,
             np.finfo(float).eps
         )
 
@@ -237,6 +204,8 @@ def sl_xy(
         np.ndarray: tracer outline (ebauche) at t + dt 
     """
     
+    logging.info(f"(sl_xy) Tracer : mean {tracer.mean()}")
+    
     # Recherche semi lag
     lx_d, ly_d, i_d, j_d = lagrangian_search(
         config=config,
@@ -247,6 +216,7 @@ def sl_xy(
         interpolation_function=interpolation_function,
         nitmp=nitmp,
     )
+    
 
     # Interpolate
     tracer_e = interpolation_function(
@@ -260,6 +230,8 @@ def sl_xy(
         config.nx, 
         config.ny
     )
+    
+    logging.info(f"(sl_xy) Tracer (t + dt) : mean {tracer_e.mean()}")
     
     return tracer_e
 
