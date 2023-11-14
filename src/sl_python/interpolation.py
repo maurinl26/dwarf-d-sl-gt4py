@@ -173,7 +173,7 @@ def interpolate_cub_2d(
         for j in range(ny):
 
             psi_d_i[0, i, j] = psi[id_m1[i, j], jd_m1[i, j]]
-            psi_d_i[1, i, j] = psi[id_0[i, j], jd_m1]
+            psi_d_i[1, i, j] = psi[id_0[i, j], jd_m1[i, j]]
             psi_d_i[2, i, j] = psi[id_p1[i, j], jd_m1[i, j]]
             psi_d_i[3, i, j] = psi[id_p2[i, j], jd_m1[i, j]]
             
