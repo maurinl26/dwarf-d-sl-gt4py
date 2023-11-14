@@ -1,7 +1,6 @@
 from typing import Tuple
 import numpy as np
 import logging
-import sys
 
 from config import Config
 
@@ -215,7 +214,7 @@ def sl_xy(
         np.ndarray: tracer outline (ebauche) at t + dt 
     """
     
-    logging.info(f"(sl_xy) Tracer : mean {tracer.mean()}")
+    logging.info(f"(sl_xy) Tracer : mean {tracer.mean():.03f}")
     
     # Recherche semi lag
     lx_d, ly_d, i_d, j_d = lagrangian_search(
@@ -255,7 +254,8 @@ def backup(
     tracer: np.ndarray,
     tracer_e: np.ndarray,
 ) -> Tuple[np.ndarray]:
-    """Remap ebauche fields at t into fields at tau = t + dt
+    """Copy fields for next iteration.
+    Ex : vx_e becomes vx at next model time step
 
     Args:
         vx (np.ndarray): x velocity
@@ -266,7 +266,7 @@ def backup(
         tracer_e (np.ndarray): ebauche at t + dt for tracer field
 
     Returns:
-        _type_: _description_
+        Tuple[np.ndarray]: copy for fields
     """
 
     # Copie des champs
