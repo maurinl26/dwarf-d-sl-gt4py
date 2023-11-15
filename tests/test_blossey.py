@@ -4,12 +4,13 @@ from typing import Tuple
 import numpy as np
 import matplotlib.pyplot as plt
 import sys
+import yaml
 
 sys.path.append("/home/maurinl/sl_gt4py/src")
 print(sys.path)
 
-from sl_python.interpolation import interpolate_cub_2d, interpolate_lin_2d
-from sl_python.sl_2D import sl_init, sl_xy
+from sl_python_numba.interpolation import interpolate_cub_2d
+from sl_python_numba.sl_2D import sl_xy, sl_init
 from config import Config
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
@@ -79,7 +80,7 @@ def blossey_stf(xcr: np.ndarray, ycr: np.ndarray, mt: float) -> np.ndarray:
     return stf
 
 
-# Taken from Christian
+# Taken from FVM Slim (Christian)
 def stream_function_xy(stf: np.ndarray, dx, dy) -> Tuple[np.ndarray]:
     """Computes velocity components based on stream function
 
@@ -152,6 +153,7 @@ def sl_driver(
     t = model_starttime
     jstep = 0
     while t < model_endtime:
+        
         jstep += 1
         t += config.dt
         logging.info(f"Step : {jstep}")
@@ -200,7 +202,7 @@ def sl_driver(
 
     plot_blossey(config.xcr, config.ycr, vx, vy, tracer, t)
     
-    plot_tracer_against_reference(config.xcr, config.ycr, vx, vy, tracer, tracer_ref, e_2, e_inf)
+    plot_tracer_against_reference(config.xcr, config.ycr, tracer, tracer_ref, e_2, e_inf)
 
 
 def plot_blossey(
@@ -237,8 +239,6 @@ def plot_blossey(
 def plot_tracer_against_reference(
     xcr: np.ndarray,
     ycr: np.ndarray,
-    vx: np.ndarray,
-    vy: np.ndarray,
     tracer: np.ndarray,
     tracer_ref: float,
     e2: float,
@@ -258,8 +258,8 @@ def plot_tracer_against_reference(
     ax.contour(xcr, ycr, tracer_ref, colors="blue", vmin=0.05, vmax=0.95, levels=levels_ref, linewidths=1)
     
     
-    ax.text(0.0 ,0.01, f" E2 = {e2:.03f} \n Einf = {einf:.03f}")
-    ax.text(0.90, 0.01, f" Max = {np.max(tracer):.03f} \n Min = {np.min(tracer):.03f}")
+    ax.text(0.0 ,0.01, r" $E_2$" + f" = {e2:.03f} \n" + r" $E_{\infty}$" +f" = {einf:.03f}")
+    ax.text(0.90, 0.01, f" Min = {np.min(tracer):.03f} \n Max = {np.max(tracer):.03f}")
     
 
     fig.savefig(f"./figures/blossey/blossey_ref.pdf")
@@ -267,23 +267,23 @@ def plot_tracer_against_reference(
 
 if __name__ == "__main__":
     # Shift in config file
-    T = 1
-    t = 0
-
-    model_starttime = 0
-    model_endtime = 1
-    dt = 0.02
-    nstep = np.ceil((model_endtime - model_starttime) / dt)
-    xmin, xmax = 0, 1
-    ymin, ymax = 0, 1
-    nx, ny = 50, 50
+    
+    config_file = "./config/durran_blossey.yml"
+    with open(config_file, 'r') as file:
+        conf_dict = yaml.safe_load(file)
+        
+        config = Config(**conf_dict)
+    
+    # LSETTLS  
     lsettls = True
-    bcx_kind, bcy_kind = 1, 1
+    
+    # Pour info
+    T = config.model_endtime - config.model_starttime
+    t = config.model_starttime
+    nstep = np.ceil((config.model_endtime - config.model_starttime) / config.dt)
 
-    logging.info(f"Time step dt : {dt:.06f} s")
+    logging.info(f"Time step dt : {config.dt:.06f} s")
     logging.info(f"N steps : {nstep:.06f} s")
-
-    config = Config(dt, xmin, xmax, nx, ymin, ymax, ny, bcx_kind, bcy_kind)
 
     vx, vy, vx_p, vy_p, vx_e, vy_e = init_blossey(
         config.xcr, config.ycr, t, config.dt, config.dx, config.dy, config.nx, config.ny
@@ -304,8 +304,8 @@ if __name__ == "__main__":
         tracer,
         tracer_e,
         lsettls,
-        model_starttime,
-        model_endtime,
+        config.model_starttime,
+        config.model_endtime,
     )
     duration = time.time() - start_time
     logging.info(f"Duration : {duration} s")
