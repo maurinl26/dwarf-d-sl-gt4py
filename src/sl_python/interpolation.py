@@ -290,7 +290,7 @@ def interpolate_cub_3d(
         pz_m1 * psi_lev_m1 
         + pz_0 * psi_lev_0 
         + pz_p1 * psi_lev_p1 
-        + pz_p1 * psi_lev_p2
+        + pz_p2 * psi_lev_p2
     )
     
     return psi_d
