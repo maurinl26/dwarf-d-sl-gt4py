@@ -202,3 +202,96 @@ def interpolate_cub_2d(
     
     return psi_d
 
+
+def interpolate_cub_3d(
+    psi: np.ndarray,
+    lx: np.ndarray,
+    ly: np.ndarray,
+    lz: np.ndarray,
+    i_d: np.ndarray,
+    j_d: np.ndarray,
+    k_d: np.ndarray,
+    bcx_kind: int,
+    bcy_kind: int,
+    nx: int,
+    ny: int,
+    nz: int
+):
+
+    p_1 = lambda l: (1 / 6) * l * (l - 1) * (2 - l)
+    p0 = lambda l: (1 - l**2) * (1 - l / 2)
+    p1 = lambda l: (1 / 2) * l * (l + 1) * (2 - l)
+    p2 = lambda l: (1 / 6) * l * (l**2 - 1)
+
+    kd_m1 = np.where(k_d - 1 < nx, k_d - 1, nx)
+    kd_m1 = np.where(kd_m1 >= 0, kd_m1, 0)
+        
+    kd_0 = np.where(k_d < nx, k_d, nx)
+    kd_0 = np.where(kd_0 >=0, kd_0, 0)
+        
+    kd_p1 = np.where(k_d + 1 < nx, k_d + 1, nx)
+    kd_p1 = np.where(kd_p1 >= 0, kd_p1, 0)
+        
+    kd_p2 = np.where(k_d + 2 < nx, k_d + 2, nx)
+    kd_p2 = np.where(kd_p2 >= 0, kd_p2, 0)
+
+    pz_m1 = p_1(lz)
+    pz_0 = p0(lz)
+    pz_p1 = p1(lz)
+    pz_p2 = p2(lz)
+
+    psi_lev_m1 = interpolate_cub_2d(
+        psi[:, :, kd_m1],
+        lx, 
+        ly,
+        i_d,
+        j_d,
+        bcx_kind,
+        bcy_kind,
+        nx, 
+        ny
+    )
+    psi_lev_0 = interpolate_cub_2d(
+        psi[:, :, kd_0],
+        lx, 
+        ly,
+        i_d,
+        j_d,
+        bcx_kind,
+        bcy_kind,
+        nx, 
+        ny
+    )
+    psi_lev_p1 = interpolate_cub_2d(
+        psi[:, :, kd_p1],
+        lx, 
+        ly,
+        i_d,
+        j_d,
+        bcx_kind,
+        bcy_kind,
+        nx, 
+        ny
+    )
+    psi_lev_p2 = interpolate_cub_2d(
+        psi[:, :, kd_p2],
+        lx, 
+        ly,
+        i_d,
+        j_d,
+        bcx_kind,
+        bcy_kind,
+        nx, 
+        ny
+    )
+
+    
+    psi_d = (
+        pz_m1 * psi_lev_m1 
+        + pz_0 * psi_lev_0 
+        + pz_p1 * psi_lev_p1 
+        + pz_p1 * psi_lev_p2
+    )
+    
+    return psi_d
+
