@@ -5,25 +5,21 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 
+import yaml
+
+from sl_python.plot import plot_blossey
+
 sys.path.append("/home/maurinl/sl_gt4py/src")
 print(sys.path)
 
 from sl_python.interpolation import interpolate_cub_2d, interpolate_lin_2d
 from sl_python.sl_2D import sl_init, sl_xy
+from test_blossey import tracer_shape, blossey_tracer, r_tilde
 from config import Config
 from utils.cfl import cfl_1d
+
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
-
-
-# Pointwise functions
-def r_tilde(x, y):
-    return 5 * np.sqrt((x - 0.5) ** 2 + (y - 0.5) ** 2)
-
-
-def tracer_shape(x: float, y: float, tracer0: float):
-    r_t = r_tilde(x, y)
-    return np.where(r_t < 1, tracer0 + ((1 + np.cos(np.pi * r_t)) / 2) ** 2, tracer0)
-
+logging.getLogger(__name__)
 
 def init_uniform(U: float, V: float, nx: int, ny: int):
     # Vitesses
@@ -32,13 +28,6 @@ def init_uniform(U: float, V: float, nx: int, ny: int):
     vx_e, vy_e = np.empty((nx, ny)), np.empty((nx, ny))
 
     return vx, vy, vx_p, vy_p, vx_e, vy_e
-
-
-def blossey_tracer(xcr, ycr):
-    # Tracer
-    tracer = tracer_shape(xcr, ycr, 0)
-    tracer_e = np.zeros(xcr.shape)
-    return tracer, tracer_e
 
 
 def backup(tracer, tracer_e):
@@ -93,64 +82,25 @@ def one_step_driver(
     
     return tracer_e
 
-
-def plot_blossey(
-    xcr: np.ndarray,
-    ycr: np.ndarray,
-    vx: np.ndarray,
-    vy: np.ndarray,
-    tracer: np.ndarray,
-    output_file: str,
-):
-    # Shape
-    fig, ax = plt.subplots()
-
-    # Vent
-    ax.quiver(
-        xcr[::2, ::2], ycr[::2, ::2], vx[::2, ::2], vy[::2, ::2],
-        color="C0",
-        angles="xy",
-        scale_units="xy",
-        scale=5,
-        width=0.002,
-    )
-    ax.set(xlim=(0, 1), ylim=(0, 1))
-
-    levels = [0.05 + i * 0.1 for i in range(0, 10)]
-    ax.contour(xcr, ycr, tracer, colors="black", vmin=0.05, vmax=0.95, levels=levels)
-
-    plt.savefig(output_file)
-
-
 if __name__ == "__main__":
-    # Shift in config file
-    T = 1
-    t = 0
+    
+    
+    config_file = "./config/uniform_advection.yml"
+    with open(config_file, 'r') as file:
+        conf_dict = yaml.safe_load(file)
+        config = Config(**conf_dict)
 
     # TODO : send config to config field (.yml)
-    model_starttime = 0
-    model_endtime = 1
-    nstep = 1
-    nitmp = 4
-    dt = (model_endtime - model_starttime) / nstep
-    xmin, xmax = 0, 1
-    ymin, ymax = 0, 1
-    nx, ny = 50, 50
     U, V = 0.2, 0.2
     lsettls = True
-    bcx_kind, bcy_kind = 1, 1
 
-
-    # TODO : initialize config
-    config = Config(dt, xmin, xmax, nx, ymin, ymax, ny, bcx_kind, bcy_kind)
-    
     logging.info("Config")
     logging.info(f"time step dt : {config.dt} s")
     logging.info(f"dx : {config.dx}, dy : {config.dy}")
     logging.info(f"Uniform velocity U = {U}, V = {V}")
 
     vx, vy, vx_p, vy_p, vx_e, vy_e = init_uniform(
-        U, V, nx, ny
+        U, V, config.nx, config.ny
     )
     tracer, tracer_e = blossey_tracer(config.xcr, config.ycr)
     tracer_ref = tracer.copy()
@@ -178,7 +128,6 @@ if __name__ == "__main__":
     #### Interp Cubique
     
     # Advection encapsulation
-    
     tracer, tracer_e = blossey_tracer(config.xcr, config.ycr)
     tracer_ref = tracer.copy()
     

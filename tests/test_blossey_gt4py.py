@@ -5,14 +5,16 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import yaml
-from sl_python.plot import plot_blossey, plot_tracer_against_reference
+import gt4py
 
 sys.path.append("/home/maurinl/sl_gt4py/src")
 print(sys.path)
 
+from sl_gt4py.gt4py_config import dtype, backend, origin, backend_opts
 from sl_python_numba.interpolation import interpolate_cub_2d
 from sl_python_numba.sl_2D import sl_xy, sl_init
 from config import Config
+from .test_blossey import plot_blossey, plot_tracer_against_reference
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
@@ -147,6 +149,7 @@ def sl_driver(
     tracer_ref = tracer.copy()
 
     # Advection
+    # TODO: shift sl init to gt4py stencil
     vx_e, vy_e, vx, vy = sl_init(
         vx_e=vx_e, vy_e=vy_e, vx=vx, vy=vy, vx_p=vx_p, vy_p=vy_p, lsettls=lsettls
     )
@@ -160,12 +163,14 @@ def sl_driver(
         logging.info(f"Step : {jstep}")
         logging.info(f"Time : {100*t/(model_endtime - model_starttime):.02f}%")
 
+        # TODO: shift blossey init to gt4py stencil
         vx, vy = blossey_velocity(config.xcr, config.ycr, t, config.dx, config.dy)
         vx_e, vy_e = blossey_velocity(
             config.xcr, config.ycr, t + config.dt, config.dx, config.dy
         )
 
         # Estimations
+        # TODO : shift first part of sl_xy into gt4py
         tracer_e = sl_xy(
             config=config,
             vx=vx,
@@ -178,32 +183,15 @@ def sl_driver(
             nitmp=4,
         )
 
+        # TODO : backup in GT4Py
         tracer = backup(tracer=tracer, tracer_e=tracer_e)
 
         # Diagnostics and outputs
+        # TODO : cfl1d in GT4Py
         courant_xmax = np.max(cfl_1d(vx_e, config.dx, config.dt))
         courant_ymax = np.max(cfl_1d(vy_e, config.dy, config.dt))
 
         logging.info(f"Maximum courant number : {max(courant_xmax, courant_ymax):.02f}")
-        
-        if t >= (T / 4) and t < (T / 4) + config.dt:
-            plot_blossey(config.xcr, config.ycr, vx, vy, tracer, t)
-
-        if t >= (T / 2) and t < (T / 2) + config.dt:
-            plot_blossey(config.xcr, config.ycr, vx, vy, tracer, t)
-            
-        if t >= (0.75 * T) and t < (0.75 * T) + config.dt:
-            plot_blossey(config.xcr, config.ycr, vx, vy, tracer, t)
-
-    e_inf = np.max(np.abs(tracer - tracer_ref))
-    e_2 = np.sqrt((1 / (config.nx * config.ny)) * np.sum((tracer - tracer_ref) ** 2))
-
-    logging.info(f"Error E_inf : {e_inf}")
-    logging.info(f"Error E_2 : {e_2}")
-
-    plot_blossey(config.xcr, config.ycr, vx, vy, tracer, t, f"./figures/blossey/blossey_{t:.03f}.pdf")
-    
-    plot_tracer_against_reference(config.xcr, config.ycr, tracer, tracer_ref, e_2, e_inf, f"./figures/blossey/blossey_ref.pdf")
 
 if __name__ == "__main__":
     # Shift in config file
@@ -224,12 +212,33 @@ if __name__ == "__main__":
 
     logging.info(f"Time step dt : {config.dt:.06f} s")
     logging.info(f"N steps : {nstep:.06f} s")
-
-    vx, vy, vx_p, vy_p, vx_e, vy_e = init_blossey(
-        config.xcr, config.ycr, t, config.dt, config.dx, config.dy, config.nx, config.ny
+    
+    # Velocities
+    vx = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    vy = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    vx_p = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    vy_p = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    vx_e = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    vy_e = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    
+    # Init velocities (numpy -> gt4py)
+    init_state = init_blossey(
+         config.xcr, config.ycr, t, config.dt, config.dx, config.dy, config.nx, config.ny
     )
-    tracer, tracer_e = blossey_tracer(config.xcr, config.ycr)
-    plot_blossey(config.xcr, config.ycr, vx, vy, tracer, 0)
+    vx[:, :] = init_state[0]
+    vy[:, :] = init_state[1]
+    vx_p[:, :] = init_state[2]
+    vy_p[:, :] = init_state[3]
+    vx_e[:, :] = init_state[4]
+    vy_e[:, :] = init_state[5]    
+    
+    # Tracer
+    tracer = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    tracer_e = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    
+    tracer_state = blossey_tracer(config.xcr, config.ycr)
+    tracer[:, :] = tracer_state[0]
+    tracer_e[:, :] = tracer_state[1]
 
     # Advection encapsulation
     start_time = time.time()
@@ -249,3 +258,14 @@ if __name__ == "__main__":
     )
     duration = time.time() - start_time
     logging.info(f"Duration : {duration} s")
+    
+    # Pickup fields
+    out_tracer = np.asarray(tracer)
+    out_vx = np.asarray(vx)
+    out_vy = np.asarray(vy)
+    
+    e_inf = np.max(np.abs(tracer - tracer_state[0]))
+    e_2 = np.sqrt((1 / (config.nx * config.ny)) * np.sum((tracer - tracer_state[0]) ** 2))
+
+    plot_blossey(config.xcr, config.ycr, out_vx, out_vy, out_tracer, 1)
+    plot_tracer_against_reference(config.xcr, config.yxr, out_tracer, tracer_state[0], e_2, e_inf)
