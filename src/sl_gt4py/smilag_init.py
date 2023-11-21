@@ -34,16 +34,18 @@ def sl_init(
     """
     
     # LSETTLS
-    # if lsettls:
     with computation(PARALLEL), interval(...):
+        if lsettls:
             vx_e[0, 0, 0] = vx[0, 0, 0]
             vy_e[0, 0, 0] = vy[0, 0, 0]
 
             vx[0, 0, 0] = 2 * vx[0, 0, 0] - vx_p[0, 0, 0]
             vy[0, 0, 0] = 2 * vy[0, 0, 0] - vy_p[0, 0, 0]
-
-    # # LNESC
-    # else:
-    #     with computation(PARALLEL), interval(...):
-    #         vx_e[0, 0, 0] = vx[0, 0, 0]
-    #         vy_e[0, 0, 0] = vy[0, 0, 0]
+            
+        else:
+                
+            vx_e[0, 0, 0] = vx[0, 0, 0]
+            vy_e[0, 0, 0] = vy[0, 0, 0]
+                
+                
+                

@@ -41,12 +41,14 @@ def lagrangian_search(
     Returns:
         gtscript.Field[dtype]: departure point
     """
-
+    print(vx.shape)
+    print(vx_tmp.shape)
+    
     copy(vx, vx_tmp, vy, vy_tmp)
 
     # Array declaration
     for l in range(nitmp):
-        
+                
         dep_search_1d(I, vx_e, vx_tmp, lx, I_d, config.dx, config.dth)
         dep_search_1d(J, vy_e, vy_tmp, ly, J_d, config.dy, config.dth)
 
