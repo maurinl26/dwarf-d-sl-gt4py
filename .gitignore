@@ -1,7 +1,10 @@
-/data
+data
 __pycache__
 .vscode
+.gt_cache
+.dacecache
 sl_venv
 .pytest_cache
+figures
 
 index.txt
