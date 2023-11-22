@@ -3,8 +3,8 @@ import numpy as np
 import logging
 
 from config import Config
-from sl_python.filter import overshoot_filter, undershoot_filter
-from sl_python.interpolation import interpolate_lin_2d
+from sl_python.filter import diagnostic_overshoot, overshoot_filter, undershoot_filter
+from sl_python.interpolation import interpolate_lin_2d, max_interpolator_2d, min_interpolator_2d
 
 logging.getLogger(__name__)
 
@@ -147,7 +147,7 @@ def sl_xy(
     tracer_e: np.ndarray,
     interpolation_function: callable,
     nitmp: int,
-    filter: bool = True
+    filter: bool = True,
 ) -> np.ndarray:
     """Performs tracer advection with 2D semi lagrangian.
     1: search for departure point
@@ -192,25 +192,44 @@ def sl_xy(
         config.nx, 
         config.ny
     )
-    
+        
     if filter:
-        tracer_e = overshoot_filter(
-            tracer_e,
+        
+        
+        
+        tracer_sup = max_interpolator_2d(
             tracer,
             i_d,
             j_d,
+            config.bcx_kind,
+            config.bcy_kind,
             config.nx,
             config.ny
         )
         
-        tracer_e = undershoot_filter(
+        overshoots_before_filter = diagnostic_overshoot(
+            tracer_e=tracer_e,
+            tracer_sup=tracer_sup
+        )
+        logging.info(f"overshoots before filter L2 {(1 / (config.nx * config.ny)) *np.sum(overshoots_before_filter)}")
+        logging.info(f"overshoots before filter Linf {np.max(overshoots_before_filter)}")
+
+        
+        tracer_e = overshoot_filter(
             tracer_e,
-            tracer,
-            i_d,
-            j_d,
+            tracer_sup,
             config.nx,
             config.ny
         )
+        
+        overshoots_after_filter = diagnostic_overshoot(
+            tracer_e=tracer_e,
+            tracer_sup=tracer_sup
+        )
+        
+        logging.info(f"overshoots after filter L2 {(1 / (config.nx * config.ny)) *np.sum(overshoots_after_filter)}")
+        logging.info(f"overshoots after filter Linf {np.max(overshoots_after_filter)}")
+
         
     return tracer_e
 
