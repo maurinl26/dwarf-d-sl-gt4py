@@ -3,11 +3,13 @@ import numpy as np
 import logging
 
 from config import Config
+from sl_python.filter import overshoot_filter, undershoot_filter
+from sl_python.interpolation import interpolate_lin_2d
 
 logging.getLogger(__name__)
 
 def dep_search_1d(
-    I: np.ndarray,
+    i: np.ndarray,
     vx_e: np.ndarray,
     vx_tmp: np.ndarray,
     dx: np.ndarray,
@@ -30,50 +32,10 @@ def dep_search_1d(
     
     # Deplacement
     trajx = - dth * (vx_e + vx_tmp) / dx # dth = dt / 2
-    i_d = (I + np.floor(trajx)).astype(int)
+    i_d = (i + np.floor(trajx)).astype(int)
     lx = trajx - np.floor(trajx)
                 
     return lx, i_d
-
-
-def departure_search(
-    I: np.ndarray,
-    J: np.ndarray,
-    vx_e: np.ndarray,
-    vy_e: np.ndarray,
-    vx_tmp: np.ndarray,
-    vy_tmp: np.ndarray,
-    dth: float,
-    dx: float,
-    dy: float,
-) -> Tuple[np.ndarray]:
-    """Compute departure points coordinates, with respect 
-    to nearest grid points. 
-
-    Args:
-        xcr (np.ndarray): x coordinates of gridpoints
-        ycr (np.ndarray): y coordinates of gridpoints
-        I (np.ndarray): indices of grid points (x direction)
-        J (np.ndarray): indices of grid points (y direction)
-        vx_e (np.ndarray): velocity on x at t + dt (ebauche)
-        vy_e (np.ndarray): velocity on y at t + dt (ebauche)
-        vx_tmp (np.ndarray): velocity on x at t for updated departure point
-        vy_tmp (np.ndarray): velocity on y at t for updated departure point
-        dth (float): half time step
-        dx (float): x spacing on grid
-        dy (float): y spacing on grid
-        epsilon (float): machine minimum
-
-    Returns:
-        Tuple[np.ndarray]: 
-                lx, ly -> distance from departure point to grid point, 
-                id, jd -> indices from  ref grid points (near from departure point)
-    """
-    
-    lx, i_d = dep_search_1d(I, vx_e, vx_tmp, dx, dth)
-    ly, j_d = dep_search_1d(J, vy_e, vy_tmp, dy, dth)
-   
-    return lx, ly, i_d, j_d
     
 
 # ELARCHE
@@ -104,17 +66,8 @@ def lagrangian_search(
     # Array declaration
     for l in range(nitmp):
         
-        lx, ly, i_d, j_d = departure_search(
-            config.I,
-            config.J,
-            vx_e,
-            vy_e,
-            vx_tmp,
-            vy_tmp,
-            config.dth,
-            config.dx,
-            config.dy,
-        )
+        lx, i_d = dep_search_1d(config.I, vx_e, vx_tmp, config.dx, config.dth)
+        ly, j_d = dep_search_1d(config.J, vy_e, vy_tmp, config.dy, config.dth)
 
         ####### Interpolation for fields ########
         vx_tmp = interpolation_function(
@@ -194,6 +147,7 @@ def sl_xy(
     tracer_e: np.ndarray,
     interpolation_function: callable,
     nitmp: int,
+    filter: bool = True
 ) -> np.ndarray:
     """Performs tracer advection with 2D semi lagrangian.
     1: search for departure point
@@ -213,9 +167,7 @@ def sl_xy(
     Returns:
         np.ndarray: tracer outline (ebauche) at t + dt 
     """
-    
-    logging.info(f"(sl_xy) Tracer : mean {tracer.mean():.03f}")
-    
+        
     # Recherche semi lag
     lx_d, ly_d, i_d, j_d = lagrangian_search(
         config=config,
@@ -223,7 +175,7 @@ def sl_xy(
         vy_e=vy_e,
         vx=vx,
         vy=vy,
-        interpolation_function=interpolation_function,
+        interpolation_function=interpolate_lin_2d,
         nitmp=nitmp,
     )
     
@@ -241,8 +193,25 @@ def sl_xy(
         config.ny
     )
     
-    logging.info(f"(sl_xy) Tracer (t + dt) : mean {tracer_e.mean()}")
-    
+    if filter:
+        tracer_e = overshoot_filter(
+            tracer_e,
+            tracer,
+            i_d,
+            j_d,
+            config.nx,
+            config.ny
+        )
+        
+        tracer_e = undershoot_filter(
+            tracer_e,
+            tracer,
+            i_d,
+            j_d,
+            config.nx,
+            config.ny
+        )
+        
     return tracer_e
 
 
