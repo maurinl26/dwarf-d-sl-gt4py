@@ -1,5 +1,9 @@
+import logging
 import numpy as np
 
+from sl_python.boundaries import boundaries
+
+logging.getLogger(__name__)
 
 def overshoot_filter(
     tracer_e: np.ndarray, tracer: np.ndarray, i_d: int, j_d: int, nx: int, ny: int
@@ -19,18 +23,25 @@ def overshoot_filter(
 
     # Sup du champ autour du point interpolé
     # Noyaux d'interpolation max
+    
+    id_0 = boundaries(i_d, nx, 0)
+    id_p1 = boundaries(i_d + 1, nx, 0)
+    
+    jd_0 = boundaries(j_d, ny, 0)
+    jd_p1 = boundaries(j_d + 1, ny, 0)
+    
     tracer_sup = np.empty((nx, ny))
     for i in range(nx):
         for j in range(ny):
             tracer_sup[i, j] = max(
-                tracer[i_d[i, j], j_d[i, j]],
-                tracer[i_d[i, j], j_d[i, j]],
-                tracer[i_d[i, j] + 1, j_d[i, j]],
-                tracer[i_d[i, j] + 1, j_d[i, j] + 1],
+                tracer[id_0[i, j], jd_0[i, j]],
+                tracer[id_0[i, j], jd_p1[i, j]],
+                tracer[id_p1[i, j], jd_0[i, j]],
+                tracer[id_p1[i, j], jd_p1[i, j]],
             )
 
     # Surplus
-    overshoot = np.max(tracer_e - tracer_sup, 0)
+    overshoot = np.maximum(tracer_e - tracer_sup, np.finfo(np.float64).tiny)
 
     ###### Bottom left corner
     i, j = 0, 0
@@ -205,6 +216,12 @@ def undershoot_filter(
         nx (int): _description_
         ny (int): _description_
     """
+    
+    id_0 = boundaries(i_d, nx, 0)
+    id_p1 = boundaries(i_d + 1, nx, 0)
+    
+    jd_0 = boundaries(j_d, ny, 0)
+    jd_p1 = boundaries(j_d + 1, ny, 0)
 
     # Sup du champ autour du point interpolé
     # Noyaux d'interpolation max
@@ -212,14 +229,14 @@ def undershoot_filter(
     for i in range(nx):
         for j in range(ny):
             tracer_inf[i, j] = min(
-                tracer[i_d[i, j], j_d[i, j]],
-                tracer[i_d[i, j], j_d[i, j]],
-                tracer[i_d[i, j] + 1, j_d[i, j]],
-                tracer[i_d[i, j] + 1, j_d[i, j] + 1],
+                tracer[id_0[i, j], jd_0[i, j]],
+                tracer[id_0[i, j], jd_p1[i, j]],
+                tracer[id_p1[i, j], jd_0[i, j]],
+                tracer[id_p1[i, j], jd_p1[i, j]],
             )
 
     # Surplus
-    undershoot = np.min(tracer_e - tracer_inf, 0)
+    undershoot = np.minimum(tracer_inf - tracer_e, -np.finfo(np.float64).tiny)
 
     ###### Bottom left corner
     i, j = 0, 0
@@ -229,10 +246,10 @@ def undershoot_filter(
 
     total_disp = slot_4 + slot_5 + slot_6
 
-    if total_disp > undershoot[0, 0]:
-        tracer_e[0 + 1, 0] += (slot_4 / total_disp) * undershoot[0, 0]
-        tracer_e[0 + 1, 0 + 1] += (slot_5 / total_disp) * undershoot[0, 0]
-        tracer_e[0, 0 + 1] += (slot_6 / total_disp) * undershoot[0, 0]
+    if total_disp < undershoot[0, 0]:
+        tracer_e[0 + 1, 0] -= (slot_4 / total_disp) * undershoot[0, 0]
+        tracer_e[0 + 1, 0 + 1] -= (slot_5 / total_disp) * undershoot[0, 0]
+        tracer_e[0, 0 + 1] -= (slot_6 / total_disp) * undershoot[0, 0]
 
     ####### Bottom right corner
     # Distribution en cas d'undershoot
@@ -244,10 +261,10 @@ def undershoot_filter(
 
     total_disp = slot_6 + slot_7 + slot_8
 
-    if total_disp > undershoot[i, j]:
-        tracer_e[i, j + 1] += (slot_6 / total_disp) * undershoot[i, j]
-        tracer_e[i - 1, j + 1] += (slot_7 / total_disp) * undershoot[i, j]
-        tracer_e[i - 1, j] += (slot_8 / total_disp) * undershoot[i, j]
+    if total_disp < undershoot[i, j]:
+        tracer_e[i, j + 1] -= (slot_6 / total_disp) * undershoot[i, j]
+        tracer_e[i - 1, j + 1] -= (slot_7 / total_disp) * undershoot[i, j]
+        tracer_e[i - 1, j] -= (slot_8 / total_disp) * undershoot[i, j]
 
     ######## Upper left corner
     i, j = 0, ny - 1
@@ -257,10 +274,10 @@ def undershoot_filter(
 
     total_disp = slot_2 + slot_3 + slot_4
 
-    if total_disp > undershoot[i, j]:
-        tracer_e[i, j - 1] += (slot_2 / total_disp) * undershoot[i, j]
-        tracer_e[i + 1, j - 1] += (slot_3 / total_disp) * undershoot[i, j]
-        tracer_e[i + 1, j] += (slot_4 / total_disp) * undershoot[i, j]
+    if total_disp < undershoot[i, j]:
+        tracer_e[i, j - 1] -= (slot_2 / total_disp) * undershoot[i, j]
+        tracer_e[i + 1, j - 1] -= (slot_3 / total_disp) * undershoot[i, j]
+        tracer_e[i + 1, j] -= (slot_4 / total_disp) * undershoot[i, j]
 
     ######## Upper right corner
     i, j = nx - 1, ny - 1
@@ -271,10 +288,10 @@ def undershoot_filter(
 
     total_disp = slot_1 + slot_2 + slot_8
 
-    if total_disp > undershoot[i, j]:
-        tracer_e[i - 1, j - 1] += (slot_1 / total_disp) * undershoot[i, j]
-        tracer_e[i, j - 1] += (slot_2 / total_disp) * undershoot[i, j]
-        tracer_e[i - 1, j] += (slot_8 / total_disp) * undershoot[i, j]
+    if total_disp < undershoot[i, j]:
+        tracer_e[i - 1, j - 1] -= (slot_1 / total_disp) * undershoot[i, j]
+        tracer_e[i, j - 1] -= (slot_2 / total_disp) * undershoot[i, j]
+        tracer_e[i - 1, j] -= (slot_8 / total_disp) * undershoot[i, j]
 
     ####### left border
     i = 0
@@ -287,12 +304,12 @@ def undershoot_filter(
 
         total_disp = slot_2 + slot_3 + slot_4 + slot_5 + slot_6
 
-        if total_disp > undershoot[i, j]:
-            tracer_e[i, j - 1] += (slot_2 / total_disp) * undershoot[i, j]
-            tracer_e[i + 1, j - 1] += (slot_3 / total_disp) * undershoot[i, j]
-            tracer_e[i + 1, j] += (slot_4 / total_disp) * undershoot[i, j]
-            tracer_e[i + 1, j + 1] += (slot_5 / total_disp) * undershoot[i, j]
-            tracer_e[i, j + 1] += (slot_6 / total_disp) * undershoot[i, j]
+        if total_disp < undershoot[i, j]:
+            tracer_e[i, j - 1] -= (slot_2 / total_disp) * undershoot[i, j]
+            tracer_e[i + 1, j - 1] -= (slot_3 / total_disp) * undershoot[i, j]
+            tracer_e[i + 1, j] -= (slot_4 / total_disp) * undershoot[i, j]
+            tracer_e[i + 1, j + 1] -= (slot_5 / total_disp) * undershoot[i, j]
+            tracer_e[i, j + 1] -= (slot_6 / total_disp) * undershoot[i, j]
 
     ######## Right border
     i = nx - 1
@@ -305,12 +322,12 @@ def undershoot_filter(
 
         total_disp = slot_1 + slot_2 + slot_6 + slot_7 + slot_8
 
-        if total_disp > undershoot[i, j]:
-            tracer_e[i - 1, j - 1] += (slot_1 / total_disp) * undershoot[i, j]
-            tracer_e[i, j - 1] += (slot_2 / total_disp) * undershoot[i, j]
-            tracer_e[i, j + 1] += (slot_6 / total_disp) * undershoot[i, j]
-            tracer_e[i - 1, j + 1] += (slot_7 / total_disp) * undershoot[i, j]
-            tracer_e[i - 1, j] += (slot_8 / total_disp) * undershoot[i, j]
+        if total_disp < undershoot[i, j]:
+            tracer_e[i - 1, j - 1] -= (slot_1 / total_disp) * undershoot[i, j]
+            tracer_e[i, j - 1] -= (slot_2 / total_disp) * undershoot[i, j]
+            tracer_e[i, j + 1] -= (slot_6 / total_disp) * undershoot[i, j]
+            tracer_e[i - 1, j + 1] -= (slot_7 / total_disp) * undershoot[i, j]
+            tracer_e[i - 1, j] -= (slot_8 / total_disp) * undershoot[i, j]
 
     ####### Bottom border
     j = 0
@@ -323,12 +340,12 @@ def undershoot_filter(
 
         total_disp = slot_4 + slot_5 + slot_6 + slot_7 + slot_8
 
-        if total_disp > undershoot[i, j]:
-            tracer_e[i + 1, j] += (slot_4 / total_disp) * undershoot[i, j]
-            tracer_e[i + 1, j + 1] += (slot_5 / total_disp) * undershoot[i, j]
-            tracer_e[i, j + 1] += (slot_6 / total_disp) * undershoot[i, j]
-            tracer_e[i - 1, j + 1] += (slot_7 / total_disp) * undershoot[i, j]
-            tracer_e[i - 1, j] += (slot_8 / total_disp) * undershoot[i, j]
+        if total_disp < undershoot[i, j]:
+            tracer_e[i + 1, j] -= (slot_4 / total_disp) * undershoot[i, j]
+            tracer_e[i + 1, j + 1] -= (slot_5 / total_disp) * undershoot[i, j]
+            tracer_e[i, j + 1] -= (slot_6 / total_disp) * undershoot[i, j]
+            tracer_e[i - 1, j + 1] -= (slot_7 / total_disp) * undershoot[i, j]
+            tracer_e[i - 1, j] -= (slot_8 / total_disp) * undershoot[i, j]
 
     ####### Upper border
     j = ny - 1
@@ -341,12 +358,12 @@ def undershoot_filter(
 
         total_disp = slot_1 + slot_2 + slot_3 + slot_4 + slot_8
 
-        if total_disp > undershoot[i, j]:
-            tracer_e[i - 1, j - 1] += (slot_1 / total_disp) * undershoot[i, j]
-            tracer_e[i, j - 1] += (slot_2 / total_disp) * undershoot[i, j]
-            tracer_e[i + 1, j - 1] += (slot_3 / total_disp) * undershoot[i, j]
-            tracer_e[i + 1, j] += (slot_4 / total_disp) * undershoot[i, j]
-            tracer_e[i - 1, j] += (slot_8 / total_disp) * undershoot[i, j]
+        if total_disp < undershoot[i, j]:
+            tracer_e[i - 1, j - 1] -= (slot_1 / total_disp) * undershoot[i, j]
+            tracer_e[i, j - 1] -= (slot_2 / total_disp) * undershoot[i, j]
+            tracer_e[i + 1, j - 1] -= (slot_3 / total_disp) * undershoot[i, j]
+            tracer_e[i + 1, j] -= (slot_4 / total_disp) * undershoot[i, j]
+            tracer_e[i - 1, j] -= (slot_8 / total_disp) * undershoot[i, j]
 
     # Inner domain
     for i in range(1, nx - 1):
@@ -361,17 +378,19 @@ def undershoot_filter(
             slot_7 = min(tracer_inf[i, j] - tracer_e[i - 1, j + 1], 0)
             slot_8 = min(tracer_inf[i, j] - tracer_e[i - 1, j], 0)
 
-            total_disp = -(
+            total_disp = (
                 slot_1 + slot_2 + slot_3 + slot_4 + slot_5 + slot_6 + slot_7 + slot_8
             )
 
             # inner domain
-            if total_disp > undershoot[i, j]:
-                tracer_e[i - 1, j - 1] += (slot_1 / total_disp) * undershoot[i, j]
-                tracer_e[i, j - 1] += (slot_2 / total_disp) * undershoot[i, j]
-                tracer_e[i + 1, j - 1] += (slot_3 / total_disp) * undershoot[i, j]
-                tracer_e[i + 1, j] += (slot_4 / total_disp) * undershoot[i, j]
-                tracer_e[i + 1, j + 1] += (slot_5 / total_disp) * undershoot[i, j]
-                tracer_e[i, j + 1] += (slot_6 / total_disp) * undershoot[i, j]
-                tracer_e[i - 1, j + 1] += (slot_7 / total_disp) * undershoot[i, j]
-                tracer_e[i - 1, j] += (slot_8 / total_disp) * undershoot[i, j]
+            if total_disp < undershoot[i, j]:
+                tracer_e[i - 1, j - 1] -= (slot_1 / total_disp) * undershoot[i, j]
+                tracer_e[i, j - 1] -= (slot_2 / total_disp) * undershoot[i, j]
+                tracer_e[i + 1, j - 1] -= (slot_3 / total_disp) * undershoot[i, j]
+                tracer_e[i + 1, j] -= (slot_4 / total_disp) * undershoot[i, j]
+                tracer_e[i + 1, j + 1] -= (slot_5 / total_disp) * undershoot[i, j]
+                tracer_e[i, j + 1] -= (slot_6 / total_disp) * undershoot[i, j]
+                tracer_e[i - 1, j + 1] -= (slot_7 / total_disp) * undershoot[i, j]
+                tracer_e[i - 1, j] -= (slot_8 / total_disp) * undershoot[i, j]
+                
+    return tracer_e
