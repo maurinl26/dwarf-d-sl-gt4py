@@ -1,10 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
-from sl_python.interpolation import interpolate_cubic_2d
 
-def diagnostics_search_stage():
-    
-    return None
 
 def diagnostic_interpolation(field: np.ndarray, i: int, j: int, j_step: int, dx: float):
     """Trace les polynomes de lagrange associés
@@ -32,3 +28,56 @@ def diagnostic_interpolation(field: np.ndarray, i: int, j: int, j_step: int, dx:
     plt.plot(lx, p0_x)
     plt.plot(lx, g_x)
     plt.show()
+    
+    
+def diagnostic_lipschitz(u: np.ndarray, v: np.ndarray, dx: float, dy: float, dth: float):
+    """Diagnostic for Semi-Lagrangian Research stability
+
+    Args:
+        u (np.ndarray): velocity on x 
+        v (np.ndarray): velocity on y
+        dx (float): spacing on x
+        dy (float): spacing on y
+        dth (float): half time step
+
+    Returns:
+        float: lipschitz condition on stability
+    """
+    
+    dudx = (1/dx) * np.gradient(u, axis=0)
+    dudy = (1/dy) * np.gradient(u, axis=1)
+    dvdx = (1/dx) * np.gradient(v, axis=0)
+    dvdy = (1/dy) * np.gradient(v, axis=1)
+    
+    return dth * np.maximum(np.maximum(dudx, dudy), np.maximum(dvdx, dvdy))
+
+
+def diagnostic_overshoot(
+    tracer_e: np.ndarray,
+    tracer_sup: np.ndarray,
+)-> np.ndarray:
+    """Compute overshoots
+
+    Args:
+        tracer_e (np.ndarray): interpolated field
+        tracer_sup (np.ndarray): sup field
+
+    Returns:
+        np.ndarray: overshoots
+    """
+    
+    return np.maximum(tracer_e - tracer_sup, np.finfo(np.float64).tiny)
+
+def diagnostic_undershoot(
+    tracer_e: np.ndarray,
+    tracer_inf: np.ndarray
+):
+    """Compute undershoots
+
+    Args:
+        tracer_e (np.ndarray): interpolated field
+        tracer_inf (np.ndarray): inf field
+    """
+    
+    return np.maximum(tracer_inf - tracer_e, np.finfo(np.float64).tiny)
+

@@ -3,20 +3,26 @@ import numpy as np
 import logging
 
 from config import Config
-from sl_python.filter import diagnostic_overshoot, overshoot_filter, undershoot_filter
-from sl_python.interpolation import interpolate_lin_2d, max_interpolator_2d, min_interpolator_2d
+from sl_python.diagnostics import diagnostic_lipschitz
+from sl_python.filter import overshoot_filter, undershoot_filter
+from sl_python.interpolation import (
+    interpolate_lin_2d,
+    max_interpolator_2d,
+    min_interpolator_2d,
+)
+from sl_python.periodic_filters import (
+    periodic_overshoot_filter,
+    periodic_undershoot_filter,
+)
 
 logging.getLogger(__name__)
 
+
 def dep_search_1d(
-    i: np.ndarray,
-    vx_e: np.ndarray,
-    vx_tmp: np.ndarray,
-    dx: np.ndarray,
-    dth: float
+    i: np.ndarray, vx_e: np.ndarray, vx_tmp: np.ndarray, dx: np.ndarray, dth: float
 ) -> Tuple[np.ndarray]:
     """Compute departure point coordinate (1d)
-    
+
     Args:
         I (np.ndarray): _description_
         vx_e (np.ndarray): velocity at arrival point (t + dt)
@@ -25,18 +31,18 @@ def dep_search_1d(
         dth (float): half model time step
 
     Returns:
-        Tuple[np.ndarray]: 
-            i_d: indice of departure point on grid 
-            lx: adimensionned spacing of departure point from ref grid point 
+        Tuple[np.ndarray]:
+            i_d: indice of departure point on grid
+            lx: adimensionned spacing of departure point from ref grid point
     """
-    
+
     # Deplacement
-    trajx = - dth * (vx_e + vx_tmp) / dx # dth = dt / 2
+    trajx = -dth * (vx_e + vx_tmp) / dx  # dth = dt / 2
     i_d = (i + np.floor(trajx)).astype(int)
     lx = trajx - np.floor(trajx)
-                
+
     return lx, i_d
-    
+
 
 # ELARCHE
 def lagrangian_search(
@@ -65,33 +71,20 @@ def lagrangian_search(
 
     # Array declaration
     for l in range(nitmp):
-        
         lx, i_d = dep_search_1d(config.I, vx_e, vx_tmp, config.dx, config.dth)
         ly, j_d = dep_search_1d(config.J, vy_e, vy_tmp, config.dy, config.dth)
 
+        lipschitz = diagnostic_lipschitz(
+            vx_tmp, vy_tmp, config.dx, config.dy, config.dth
+        )
+
         ####### Interpolation for fields ########
         vx_tmp = interpolation_function(
-            vx,
-            lx, 
-            ly,
-            i_d, 
-            j_d,
-            config.bcx_kind,
-            config.bcy_kind,
-            config.nx, 
-            config.ny
+            vx, lx, ly, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
         )
-        
+
         vy_tmp = interpolation_function(
-            vy,
-            lx, 
-            ly,
-            i_d, 
-            j_d,
-            config.bcx_kind,
-            config.bcy_kind,
-            config.nx, 
-            config.ny
+            vy, lx, ly, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
         )
 
     return lx, ly, i_d, j_d
@@ -106,7 +99,7 @@ def sl_init(
     vy_p: np.ndarray,
     lsettls: bool = True,
 ) -> Tuple[np.ndarray]:
-    """Initialize draft velocities with either 
+    """Initialize draft velocities with either
     LSETTLS method : 2 fields for velocity (at t and t - dt)
     LNESN (not LSETTLS) method : 1 field for velocity (at t)
 
@@ -116,7 +109,7 @@ def sl_init(
         vx (np.ndarray): velocity at t on x
         vy (np.ndarray): velocity at t on y
         vx_p (np.ndarray): velocity at t - dt on x
-        vy_p (np.ndarray): velcoity at t - dt on y 
+        vy_p (np.ndarray): velcoity at t - dt on y
         lsettls (bool, optional): LSETTLS or LNESC. Defaults to True.
 
     Returns:
@@ -137,6 +130,7 @@ def sl_init(
 
     return vx, vy, vx_e, vy_e
 
+
 def sl_xy(
     config: Config,
     vx: np.ndarray,
@@ -147,7 +141,7 @@ def sl_xy(
     tracer_e: np.ndarray,
     interpolation_function: callable,
     nitmp: int,
-    filter: bool = True,
+    filter: bool = False,
 ) -> np.ndarray:
     """Performs tracer advection with 2D semi lagrangian.
     1: search for departure point
@@ -155,19 +149,19 @@ def sl_xy(
 
     Args:
         config (Config): grid configuration
-        vx (np.ndarray): velocity on x 
-        vy (np.ndarray): velocity on y 
+        vx (np.ndarray): velocity on x
+        vy (np.ndarray): velocity on y
         vx_e (np.ndarray): velocity on x at t + dt
         vy_e (np.ndarray): velocity on y at t + dt
-        tracer (np.ndarray): tracer field 
+        tracer (np.ndarray): tracer field
         tracer_e (np.ndarray): tracer at t + dt (ebauche)
         interpolation_function (callable): linear or cubic interpolation
         nitmp (int): number of iterations for departure search
-        
+
     Returns:
-        np.ndarray: tracer outline (ebauche) at t + dt 
+        np.ndarray: tracer outline (ebauche) at t + dt
     """
-        
+
     # Recherche semi lag
     lx_d, ly_d, i_d, j_d = lagrangian_search(
         config=config,
@@ -178,59 +172,42 @@ def sl_xy(
         interpolation_function=interpolate_lin_2d,
         nitmp=nitmp,
     )
-    
 
     # Interpolate
     tracer_e = interpolation_function(
         tracer,
-        lx_d, 
+        lx_d,
         ly_d,
-        i_d, 
+        i_d,
         j_d,
         config.bcx_kind,
         config.bcy_kind,
-        config.nx, 
-        config.ny
+        config.nx,
+        config.ny,
     )
-        
-    if filter:
-        
-        
-        
-        tracer_sup = max_interpolator_2d(
-            tracer,
-            i_d,
-            j_d,
-            config.bcx_kind,
-            config.bcy_kind,
-            config.nx,
-            config.ny
-        )
-        
-        overshoots_before_filter = diagnostic_overshoot(
-            tracer_e=tracer_e,
-            tracer_sup=tracer_sup
-        )
-        logging.info(f"overshoots before filter L2 {(1 / (config.nx * config.ny)) *np.sum(overshoots_before_filter)}")
-        logging.info(f"overshoots before filter Linf {np.max(overshoots_before_filter)}")
 
-        
-        tracer_e = overshoot_filter(
-            tracer_e,
-            tracer_sup,
-            config.nx,
-            config.ny
-        )
-        
-        overshoots_after_filter = diagnostic_overshoot(
-            tracer_e=tracer_e,
-            tracer_sup=tracer_sup
-        )
-        
-        logging.info(f"overshoots after filter L2 {(1 / (config.nx * config.ny)) *np.sum(overshoots_after_filter)}")
-        logging.info(f"overshoots after filter Linf {np.max(overshoots_after_filter)}")
+    # Max et min locaux pour filtage
+    tracer_sup = max_interpolator_2d(
+        tracer, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
+    )
 
-        
+    tracer_inf = min_interpolator_2d(
+        tracer, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
+    )
+
+    if config.filter:
+        if config.bcx_kind == 1 and config.bcy_kind == 1:
+            tracer_e = periodic_overshoot_filter(
+                tracer_e, tracer_sup, config.nx, config.ny
+            )
+            tracer_e = periodic_undershoot_filter(
+                tracer_e, tracer_inf, config.nx, config.ny
+            )
+
+        if config.bcx_kind == 0 and config.bcy_kind == 0:
+            tracer_e = overshoot_filter(tracer_e, tracer_sup, config.nx, config.ny)
+            tracer_e = undershoot_filter(tracer_e, tracer_inf, config.nx, config.ny)
+
     return tracer_e
 
 
