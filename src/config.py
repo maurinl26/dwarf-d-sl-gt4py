@@ -17,8 +17,15 @@ class Config:
     ymax: dtype
     ny: int
     
+    nz: int
+    
     bcx_kind: int
     bcy_kind: int
+    
+    filter: bool
+    
+    model_starttime: float 
+    model_endtime: float
     
     def __post_init__(self):
         
@@ -44,7 +51,7 @@ class Config:
         
         xcr, ycr = np.meshgrid(self.xc, self.yc)
         self.xcr, self.ycr = xcr.T, ycr.T 
-        
+                
         
 if __name__ == "__main__":
     
