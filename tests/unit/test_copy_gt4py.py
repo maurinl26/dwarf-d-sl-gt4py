@@ -15,6 +15,7 @@ from config import Config
 from sl_python.blossey import init_blossey
 
 
+
 if __name__ == "__main__":
         
     nx, ny = 50, 50

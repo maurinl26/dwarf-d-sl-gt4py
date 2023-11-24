@@ -3,7 +3,7 @@ import numpy as np
 
 sys.path.append("/home/maurinl/sl_gt4py/src")
 
-from sl_python.interpolation import interpolate_cub_2d, interpolate_lin_2d
+from sl_python.interpolation import interpolate_lin_2d
 from config import Config
 
 def r_tilde(x: np.ndarray, y: np.ndarray):
