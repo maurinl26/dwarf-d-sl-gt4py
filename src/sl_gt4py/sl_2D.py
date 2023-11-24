@@ -8,7 +8,8 @@ from config import Config
 from sl_gt4py.copy import copy
 from sl_gt4py.departure_search import dep_search_1d
 from sl_gt4py.gt4py_config import dtype, dtype_int
-from sl_gt4py.interpolation.dace_interpolation import dace_interpolate_cub_2d, dace_interpolate_lin_2d
+from sl_gt4py.interpolation.numba_interpolation import numba_interpolate_cub_2d, numba_interpolate_lin_2d
+from sl_gt4py.interpolation.dace_interpolation import dace_interpolate_lin_2d
 
 logging.getLogger(__name__)
 
@@ -40,10 +41,7 @@ def lagrangian_search(
 
     Returns:
         gtscript.Field[dtype]: departure point
-    """
-    print(vx.shape)
-    print(vx_tmp.shape)
-    
+    """    
     copy(vx, vx_tmp, vy, vy_tmp)
 
     # Array declaration
@@ -54,6 +52,7 @@ def lagrangian_search(
 
         # Hors stencil
         ####### Interpolation for fields ########
+        
         vx_tmp = dace_interpolate_lin_2d(
             vx,
             lx, 
@@ -63,7 +62,8 @@ def lagrangian_search(
             config.bcx_kind,
             config.bcy_kind,
             config.nx, 
-            config.ny
+            config.ny,
+            config.nz
         )
         
         vy_tmp = dace_interpolate_lin_2d(
@@ -75,7 +75,8 @@ def lagrangian_search(
             config.bcx_kind,
             config.bcy_kind,
             config.nx, 
-            config.ny
+            config.ny,
+            config.nz
         )
 
     return lx, ly, I_d, J_d
@@ -98,6 +99,7 @@ def sl_xy(
     vx_tmp: gtscript.Field[dtype],
     vy_tmp: gtscript.Field[dtype],
     nitmp: int,
+    filter: bool = True,
 ):
     """Performs tracer advection with 2D semi lagrangian.
     1: search for departure point
@@ -139,7 +141,7 @@ def sl_xy(
 
     # Interpolate
     # (Hors stencil)
-    tracer_e = dace_interpolate_cub_2d(
+    tracer_e = numba_interpolate_cub_2d(
         tracer,
         lx_d, 
         ly_d,
@@ -148,7 +150,8 @@ def sl_xy(
         config.bcx_kind,
         config.bcy_kind,
         config.nx, 
-        config.ny
+        config.ny,
+        config.nz
     )
         
     return tracer_e
