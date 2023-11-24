@@ -10,6 +10,14 @@ def copy(
     vy: gtscript.Field[dtype],
     vy_tmp: gtscript.Field[dtype],
 ):
+    """Copy velocity fields into temporary fields.
+
+    Args:
+        vx (gtscript.Field[dtype]): velocity on x 
+        vx_tmp (gtscript.Field[dtype]): temporary velocity on x
+        vy (gtscript.Field[dtype]): velocity on y
+        vy_tmp (gtscript.Field[dtype]): temporary velocity on y
+    """
     with computation(PARALLEL), interval(...):
         vx_tmp[0, 0, 0] = vx[0, 0, 0]
         vy_tmp[0, 0, 0] = vy[0, 0, 0]

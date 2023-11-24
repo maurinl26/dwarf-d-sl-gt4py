@@ -1,4 +1,5 @@
 from gt4py.cartesian import gtscript
+from gt4py.cartesian.gtscript import floor
 
 from sl_gt4py.gt4py_config import backend, backend_opts, dtype, dtype_int
 
@@ -8,7 +9,7 @@ def dep_search_1d(
     vx_e: gtscript.Field[dtype],
     vx_tmp: gtscript.Field[dtype],
     lx: gtscript.Field[dtype],
-    departure_indices: gtscript.Field[dtype],
+    departure_indices: gtscript.Field[dtype_int],
     dx: dtype,
     dth: dtype,
 ):

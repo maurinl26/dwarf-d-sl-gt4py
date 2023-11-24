@@ -5,10 +5,6 @@ from sl_gt4py.gt4py_config import backend, backend_opts, dtype
 
 @gtscript.stencil(backend=backend, **backend_opts)
 def backup(
-    vx: gtscript.Field[dtype],
-    vy: gtscript.Field[dtype],
-    vx_e: gtscript.Field[dtype],
-    vy_e: gtscript.Field[dtype],
     tracer: gtscript.Field[dtype],
     tracer_e: gtscript.Field[dtype],
 ):
@@ -31,5 +27,4 @@ def backup(
 
         # Copie des champs
         tracer[0, 0, 0] = tracer_e[0, 0, 0] 
-        vx[0, 0, 0] = vx_e[0, 0, 0]
-        vy[0, 0, 0] = vy_e[0, 0, 0]
+
