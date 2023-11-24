@@ -1,10 +1,6 @@
 import numpy as np
 
-p_1 = lambda l: (1 / 6) * l * (l - 1) * (2 - l)
-p0 = lambda l: (1 - l**2) * (1 - l / 2)
-p1 = lambda l: (1 / 2) * l * (l + 1) * (2 - l)
-p2 = lambda l: (1 / 6) * l * (l**2 - 1)
-
+from sl_python.boundaries import boundaries
 
 def interpolate_lin_2d(
     psi: np.ndarray,
@@ -15,7 +11,7 @@ def interpolate_lin_2d(
     bcx_kind: int,
     bcy_kind: int,
     nx: int,
-    ny: int
+    ny: int,
 ):
     """Perform a 1d linear interpolation
 
@@ -33,62 +29,37 @@ def interpolate_lin_2d(
     # Polynômes de lagrange
     p0 = lambda l: 1 - l
     p1 = lambda l: l
-    
+
     # Interp selon x -> field_hat_x
     px = np.array([p0(lx), p1(lx)])
     py = np.array([p0(ly), p1(ly)])
-    
+
     # 1. Construire les tableaux d'indices i_d0, i_d1 / j_d0, j_d1
     # Non periodique
-    if bcx_kind == 0: 
-        id_0 = np.where(i_d < nx, i_d, nx)
-        id_0 = np.where(id_0 >= 0, id_0, 0)
-        
-        id_p1 = np.where(i_d + 1 < nx, i_d + 1, nx)
-        id_p1 = np.where(id_p1 >=0, id_p1, 0)
-        
-    # Periodique
-    else:
-        id_0 = np.where(i_d < nx, i_d, i_d % nx)
-        id_0 = np.where(id_0 >= 0, id_0, id_0 % nx)
-        
-        id_p1 = np.where(i_d + 1 < nx, i_d + 1, 0)
-        id_p1 = np.where(id_p1 >= 0, id_p1, id_p1 % nx)
+    id_0 = boundaries(i_d, nx, bcx_kind)
+    id_p1 = boundaries(i_d + 1, nx, bcx_kind)
     
-    # Non periodique
-    if bcy_kind == 0:
-        jd_0 = np.where(j_d < ny, j_d, ny)
-        jd_0 = np.where(jd_0 >= 0, jd_0, 0)
-        
-        jd_p1 = np.where(j_d + 1 < ny, j_d + 1, ny) 
-        jd_p1 = np.where(jd_p1 >= 0, jd_p1, 0)
-        
-    # Periodique
-    else:
-        jd_0 = np.where(j_d < ny, j_d, j_d % ny)
-        jd_0 = np.where(jd_0 >= 0, jd_0, jd_0 % ny)
-        
-        jd_p1 = np.where(j_d + 1 < ny, j_d + 1, 0)
-        jd_p1 = np.where(jd_p1 >= 0, jd_p1, jd_p1 % ny)
-        
-    # Lookup 
+    jd_0 = boundaries(j_d, ny, bcy_kind)
+    jd_p1 = boundaries(j_d + 1, ny, bcy_kind)
+
+    # Lookup
     psi_d_i = np.zeros((4, nx, ny))
     for i in range(nx):
         for j in range(ny):
-
             psi_d_i[0, i, j] = psi[id_0[i, j], jd_0[i, j]]
             psi_d_i[1, i, j] = psi[id_p1[i, j], jd_0[i, j]]
-            
+
             psi_d_i[2, i, j] = psi[id_0[i, j], jd_p1[i, j]]
             psi_d_i[3, i, j] = psi[id_p1[i, j], jd_p1[i, j]]
-            
+
     psi_d_j = np.zeros((2, nx, ny))
-    psi_d_j[0] = px[0] * psi_d_i[0] + px[1] * psi_d_i[1]    
-    psi_d_j[1] = px[0] * psi_d_i[2] + px[1] * psi_d_i[3] 
-    
+    psi_d_j[0] = px[0] * psi_d_i[0] + px[1] * psi_d_i[1]
+    psi_d_j[1] = px[0] * psi_d_i[2] + px[1] * psi_d_i[3]
+
     psi_d = py[0] * psi_d_j[0] + py[1] * psi_d_j[1]
-    
+
     return psi_d
+
 
 # Described as arrays
 def interpolate_cub_2d(
@@ -100,9 +71,23 @@ def interpolate_cub_2d(
     bcx_kind: int,
     bcy_kind: int,
     nx: int,
-    ny: int
+    ny: int,
 ):
     """_summary_
+
+    Args:
+        psi (np.ndarray): _description_
+        lx (np.ndarray): _description_
+        ly (np.ndarray): _description_
+        i_d (np.ndarray): _description_
+        j_d (np.ndarray): _description_
+        bcx_kind (int): _description_
+        bcy_kind (int): _description_
+        nx (int): _description_
+        ny (int): _description_
+
+    Returns:
+        _type_: _description_
     """
     # Polynomes de Lagrange
     p_1 = lambda l: (1 / 6) * l * (l - 1) * (2 - l)
@@ -112,186 +97,260 @@ def interpolate_cub_2d(
 
     px = np.array([p_1(lx), p0(lx), p1(lx), p2(lx)])
     py = np.array([p_1(ly), p0(ly), p1(ly), p2(ly)])
-    
+
     # 1. Tableaux d'indices
     # Non periodique
-    if bcx_kind == 0:
-        id_m1 = np.where(i_d - 1 < nx, i_d - 1, nx)
-        id_m1 = np.where(id_m1 >= 0, id_m1, 0)
-        
-        id_0 = np.where(i_d < nx, i_d, nx)
-        id_0 = np.where(id_0 >=0, id_0, 0)
-        
-        id_p1 = np.where(i_d + 1 < nx, i_d + 1, nx)
-        id_p1 = np.where(id_p1 >= 0, id_p1, 0)
-        
-        id_p2 = np.where(i_d + 2 < nx, i_d + 2, nx)
-        id_p2 = np.where(id_p2 >= 0, id_p2, 0)
-        
-    else:
-        id_m1 = np.where(i_d - 1 < nx, i_d - 1, (i_d - 1) % nx)
-        id_m1 = np.where(id_m1 >= 0, id_m1, id_m1 % nx)
-        
-        id_0 = np.where(i_d < nx, i_d, i_d % nx)
-        id_0 = np.where(id_0 >=0, id_0, id_0 % nx)
-        
-        id_p1 = np.where(i_d + 1 < nx, i_d + 1, (i_d + 1) % nx)
-        id_p1 = np.where(id_p1 >= 0, id_p1, id_p1 % nx)
-        
-        id_p2 = np.where(i_d + 2 < nx, i_d + 2, (i_d + 2) % nx)
-        id_p2 = np.where(id_p2 >= 0, id_p2, id_p2 % nx)
-        
-    if bcy_kind == 0:
-        jd_m1 = np.where(j_d - 1 < nx, j_d - 1, nx)
-        jd_m1 = np.where(jd_m1 >= 0, jd_m1, 0)
-        
-        jd_0 = np.where(j_d < nx, j_d, nx)
-        jd_0 = np.where(jd_0 >=0, jd_0, 0)
-        
-        jd_p1 = np.where(j_d + 1 < nx, j_d + 1, nx)
-        jd_p1 = np.where(jd_p1 >= 0, jd_p1, 0)
-        
-        jd_p2 = np.where(j_d + 2 < nx, j_d + 2, nx)
-        jd_p2 = np.where(jd_p2 >= 0, jd_p2, 0)
-        
-    else:
-        jd_m1 = np.where(j_d - 1 < nx, j_d - 1, (j_d - 1) % nx)
-        jd_m1 = np.where(jd_m1 >= 0, jd_m1, jd_m1 % nx)
-        
-        jd_0 = np.where(j_d < nx, j_d, j_d % nx)
-        jd_0 = np.where(jd_0 >=0, jd_0, jd_0 % nx)
-        
-        jd_p1 = np.where(j_d + 1 < nx, j_d + 1, (j_d + 1) % nx)
-        jd_p1 = np.where(jd_p1 >= 0, jd_p1, jd_p1 % nx)
-        
-        jd_p2 = np.where(j_d + 2 < nx, j_d + 2, (j_d + 2) % nx)
-        jd_p2 = np.where(jd_p2 >= 0, jd_p2, jd_p2 % nx)
-        
-    # Lookup 
+    id_m1 = boundaries(i_d - 1, nx, bcx_kind)
+    id_0 = boundaries(i_d, nx, bcx_kind)
+    id_p1 = boundaries(i_d + 1, nx, bcx_kind)
+    id_p2 = boundaries(i_d + 2, nx, bcx_kind)
+    
+    jd_m1 = boundaries(j_d - 1, ny, bcy_kind)
+    jd_0 = boundaries(j_d, ny, bcy_kind)
+    jd_p1 = boundaries(j_d + 1, ny, bcy_kind)
+    jd_p2 = boundaries(j_d + 2, ny, bcy_kind)
+    
+
+    # Lookup
     psi_d_i = np.zeros((16, nx, ny))
     for i in range(nx):
         for j in range(ny):
-
             psi_d_i[0, i, j] = psi[id_m1[i, j], jd_m1[i, j]]
             psi_d_i[1, i, j] = psi[id_0[i, j], jd_m1[i, j]]
             psi_d_i[2, i, j] = psi[id_p1[i, j], jd_m1[i, j]]
             psi_d_i[3, i, j] = psi[id_p2[i, j], jd_m1[i, j]]
-            
+
             psi_d_i[4, i, j] = psi[id_m1[i, j], jd_0[i, j]]
             psi_d_i[5, i, j] = psi[id_0[i, j], jd_0[i, j]]
             psi_d_i[6, i, j] = psi[id_p1[i, j], jd_0[i, j]]
             psi_d_i[7, i, j] = psi[id_p2[i, j], jd_0[i, j]]
-            
+
             psi_d_i[8, i, j] = psi[id_m1[i, j], jd_p1[i, j]]
             psi_d_i[9, i, j] = psi[id_0[i, j], jd_p1[i, j]]
             psi_d_i[10, i, j] = psi[id_p1[i, j], jd_p1[i, j]]
             psi_d_i[11, i, j] = psi[id_p2[i, j], jd_p1[i, j]]
-            
+
             psi_d_i[12, i, j] = psi[id_m1[i, j], jd_p2[i, j]]
             psi_d_i[13, i, j] = psi[id_0[i, j], jd_p2[i, j]]
             psi_d_i[14, i, j] = psi[id_p1[i, j], jd_p2[i, j]]
             psi_d_i[15, i, j] = psi[id_p2[i, j], jd_p2[i, j]]
-            
+
     psi_d_j = np.zeros((4, nx, ny))
-    psi_d_j[0] = px[0] * psi_d_i[0] + px[1] * psi_d_i[1] + px[2] * psi_d_i[2] + px[3] * psi_d_i[3]    
-    psi_d_j[1] = px[0] * psi_d_i[4] + px[1] * psi_d_i[5] + px[2] * psi_d_i[6] + px[3] * psi_d_i[7]
-    psi_d_j[2] = px[0] * psi_d_i[8] + px[1] * psi_d_i[9] + px[2] * psi_d_i[10] + px[3] * psi_d_i[11]
-    psi_d_j[3] = px[0] * psi_d_i[12] + px[1] * psi_d_i[13] + px[2] * psi_d_i[14] + px[3] * psi_d_i[15]
-    
-    psi_d = py[0] * psi_d_j[0] + py[1] * psi_d_j[1] + py[2] * psi_d_j[2] + py[3] * psi_d_j[3]
-    
+    psi_d_j[0] = (
+        px[0] * psi_d_i[0]
+        + px[1] * psi_d_i[1]
+        + px[2] * psi_d_i[2]
+        + px[3] * psi_d_i[3]
+    )
+    psi_d_j[1] = (
+        px[0] * psi_d_i[4]
+        + px[1] * psi_d_i[5]
+        + px[2] * psi_d_i[6]
+        + px[3] * psi_d_i[7]
+    )
+    psi_d_j[2] = (
+        px[0] * psi_d_i[8]
+        + px[1] * psi_d_i[9]
+        + px[2] * psi_d_i[10]
+        + px[3] * psi_d_i[11]
+    )
+    psi_d_j[3] = (
+        px[0] * psi_d_i[12]
+        + px[1] * psi_d_i[13]
+        + px[2] * psi_d_i[14]
+        + px[3] * psi_d_i[15]
+    )
+
+    psi_d = (
+        py[0] * psi_d_j[0]
+        + py[1] * psi_d_j[1]
+        + py[2] * psi_d_j[2]
+        + py[3] * psi_d_j[3]
+    )
+
     return psi_d
 
 
-def interpolate_cub_3d(
+def interpolate_cub_irregular_2D(
+    zcr: np.ndarray,
     psi: np.ndarray,
     lx: np.ndarray,
-    ly: np.ndarray,
     lz: np.ndarray,
-    i_d: np.ndarray,
-    j_d: np.ndarray,
-    k_d: np.ndarray,
+    i: np.ndarray,
+    k: np.ndarray,
     bcx_kind: int,
-    bcy_kind: int,
     nx: int,
-    ny: int,
-    nz: int
+    nz: int,
 ):
+    # Polynomes de Lagrange
+    p_1 = lambda l: (
+        ((l + zcr[i, k] - zcr[i, k]) / (zcr[i, k - 1] - zcr[i, k]))
+        * ((l + zcr[i, k] - zcr[i, k + 1]) / (zcr[i, k - 1] - zcr[i, k + 1]))
+        * ((l + zcr[i, k] - zcr[i, k + 2]) / (zcr[i, k - 1] - zcr[i, k + 2]))
+    )
+    p0 = lambda l: (
+        ((l + zcr[i, k] - zcr[i, k - 1]) / (zcr[i, k] - zcr[i, k - 1]))
+        * ((l + zcr[i, k] - zcr[i, k + 1]) / (zcr[i, k] - zcr[i, k + 1]))
+        * ((l + zcr[i, k] - zcr[i, k + 2]) / (zcr[i, k] - zcr[i, k + 2]))
+    )
+    p1 = lambda l: (
+        ((l + zcr[i, k] - zcr[i, k - 1]) / (zcr[i, k + 1] - zcr[i, k - 1]))
+        * ((l + zcr[i, k] - zcr[i, k]) / (zcr[i, k + 1] - zcr[i, k]))
+        * ((l + zcr[i, k] - zcr[i, k + 2]) / (zcr[i, k + 1] - zcr[i, k + 2]))
+    )
+    p2 = lambda l: (
+        ((l + zcr[i, k] - zcr[i, k - 1]) / (zcr[i, k + 2] - zcr[i, k - 1]))
+        * ((l + zcr[i, k] - zcr[i, k]) / (zcr[i, k + 2] - zcr[i, k]))
+        * ((l + zcr[i, k] - zcr[i, k + 1]) / (zcr[i, k + 2] - zcr[i, k + 1]))
+    )
 
-    p_1 = lambda l: (1 / 6) * l * (l - 1) * (2 - l)
-    p0 = lambda l: (1 - l**2) * (1 - l / 2)
-    p1 = lambda l: (1 / 2) * l * (l + 1) * (2 - l)
-    p2 = lambda l: (1 / 6) * l * (l**2 - 1)
-
-    kd_m1 = np.where(k_d - 1 < nx, k_d - 1, nx)
+    kd_m1 = np.where(k - 1 < nx, k - 1, nx)
     kd_m1 = np.where(kd_m1 >= 0, kd_m1, 0)
-        
-    kd_0 = np.where(k_d < nx, k_d, nx)
-    kd_0 = np.where(kd_0 >=0, kd_0, 0)
-        
-    kd_p1 = np.where(k_d + 1 < nx, k_d + 1, nx)
+
+    kd_0 = np.where(k < nx, k, nx)
+    kd_0 = np.where(kd_0 >= 0, kd_0, 0)
+
+    kd_p1 = np.where(k + 1 < nx, k + 1, nx)
     kd_p1 = np.where(kd_p1 >= 0, kd_p1, 0)
-        
-    kd_p2 = np.where(k_d + 2 < nx, k_d + 2, nx)
+
+    kd_p2 = np.where(k + 2 < nx, k + 2, nx)
     kd_p2 = np.where(kd_p2 >= 0, kd_p2, 0)
 
     pz_m1 = p_1(lz)
     pz_0 = p0(lz)
     pz_p1 = p1(lz)
     pz_p2 = p2(lz)
-
-    psi_lev_m1 = interpolate_cub_2d(
-        psi[:, :, kd_m1],
-        lx, 
-        ly,
-        i_d,
-        j_d,
-        bcx_kind,
-        bcy_kind,
-        nx, 
-        ny
-    )
-    psi_lev_0 = interpolate_cub_2d(
-        psi[:, :, kd_0],
-        lx, 
-        ly,
-        i_d,
-        j_d,
-        bcx_kind,
-        bcy_kind,
-        nx, 
-        ny
-    )
-    psi_lev_p1 = interpolate_cub_2d(
-        psi[:, :, kd_p1],
-        lx, 
-        ly,
-        i_d,
-        j_d,
-        bcx_kind,
-        bcy_kind,
-        nx, 
-        ny
-    )
-    psi_lev_p2 = interpolate_cub_2d(
-        psi[:, :, kd_p2],
-        lx, 
-        ly,
-        i_d,
-        j_d,
-        bcx_kind,
-        bcy_kind,
-        nx, 
-        ny
-    )
-
     
-    psi_d = (
-        pz_m1 * psi_lev_m1 
-        + pz_0 * psi_lev_0 
-        + pz_p1 * psi_lev_p1 
-        + pz_p2 * psi_lev_p2
+    p_1x = lambda l: (1 / 6) * l * (l - 1) * (2 - l)
+    p0x = lambda l: (1 - l**2) * (1 - l / 2)
+    p1x = lambda l: (1 / 2) * l * (l + 1) * (2 - l)
+    p2x = lambda l: (1 / 6) * l * (l**2 - 1)
+    
+    px_m1 = p_1x(lx)
+    px_0 = p0x(lx)
+    px_p1 = p1x(lx)
+    px_p2 = p2x(lx)
+    
+    # 1. Tableaux d'indices
+    # Non periodique
+    id_m1 = boundaries(i - 1, nx, bcx_kind)
+    id_0 = boundaries(i, nx, bcx_kind)
+    id_p1 = boundaries(i + 1, nx, bcx_kind)
+    id_p2 = boundaries(i + 2, nx, bcx_kind)
+
+
+    # Lookup
+    psi_d_i = np.zeros((16, nx, nz))
+    for i in range(nx):
+        for j in range(nz):
+            psi_d_i[0, i, j] = psi[id_m1[i, j], kd_m1[i, j]]
+            psi_d_i[1, i, j] = psi[id_0[i, j], kd_m1[i, j]]
+            psi_d_i[2, i, j] = psi[id_p1[i, j], kd_m1[i, j]]
+            psi_d_i[3, i, j] = psi[id_p2[i, j], kd_m1[i, j]]
+
+            psi_d_i[4, i, j] = psi[id_m1[i, j], kd_0[i, j]]
+            psi_d_i[5, i, j] = psi[id_0[i, j], kd_0[i, j]]
+            psi_d_i[6, i, j] = psi[id_p1[i, j], kd_0[i, j]]
+            psi_d_i[7, i, j] = psi[id_p2[i, j], kd_0[i, j]]
+
+            psi_d_i[8, i, j] = psi[id_m1[i, j], kd_p1[i, j]]
+            psi_d_i[9, i, j] = psi[id_0[i, j], kd_p1[i, j]]
+            psi_d_i[10, i, j] = psi[id_p1[i, j], kd_p1[i, j]]
+            psi_d_i[11, i, j] = psi[id_p2[i, j], kd_p1[i, j]]
+
+            psi_d_i[12, i, j] = psi[id_m1[i, j], kd_p2[i, j]]
+            psi_d_i[13, i, j] = psi[id_0[i, j], kd_p2[i, j]]
+            psi_d_i[14, i, j] = psi[id_p1[i, j], kd_p2[i, j]]
+            psi_d_i[15, i, j] = psi[id_p2[i, j], kd_p2[i, j]]
+
+    psi_d_j = np.zeros((4, nx, nz))
+    psi_d_j[0] = (
+        pz_m1 * psi_d_i[0]
+        + pz_0 * psi_d_i[1]
+        + pz_p1 * psi_d_i[2]
+        + pz_p2 * psi_d_i[3]
     )
+    psi_d_j[1] = (
+        pz_m1 * psi_d_i[4]
+        + pz_0 * psi_d_i[5]
+        + pz_p1 * psi_d_i[6]
+        + pz_p2 * psi_d_i[7]
+    )
+    psi_d_j[2] = (
+        pz_m1 * psi_d_i[8]
+        + pz_0 * psi_d_i[9]
+        + pz_p1 * psi_d_i[10]
+        + pz_p2 * psi_d_i[11]
+    )
+    psi_d_j[3] = (
+        pz_m1 * psi_d_i[12]
+        + pz_0 * psi_d_i[13]
+        + pz_p1 * psi_d_i[14]
+        + pz_p2 * psi_d_i[15]
+    )
+
+    psi_d = (
+        px_m1 * psi_d_j[0]
+        + px_0 * psi_d_j[1]
+        + px_p1 * psi_d_j[2]
+        + px_p2 * psi_d_j[3]
+    )
+
+    return psi_d
+
+
+def max_interpolator_2d(
+    psi: np.ndarray,
+    i_d: np.ndarray,
+    j_d: np.ndarray,
+    bcx_kind: int,
+    bcy_kind: int,
+    nx: int,
+    ny: int,
+):
+    
+    id_0 = boundaries(i_d, nx, bcx_kind)
+    id_p1 = boundaries(i_d + 1, nx, bcx_kind)
+    
+    jd_0 = boundaries(j_d, ny, bcy_kind)
+    jd_p1 = boundaries(j_d + 1, ny, bcy_kind)
+    
+    psi_d = np.zeros((nx, ny))
+    for i in range(nx):
+        for j in range(ny):
+            psi_d[i, j] = max(
+                psi[id_0[i, j], jd_0[i, j]],
+                psi[id_0[i, j], jd_p1[i, j]],
+                psi[id_p1[i, j], jd_0[i, j]],
+                psi[id_p1[i, j], jd_p1[i, j]],
+            )
     
     return psi_d
 
+def min_interpolator_2d(
+    psi: np.ndarray,
+    i_d: np.ndarray,
+    j_d: np.ndarray,
+    bcx_kind: int,
+    bcy_kind: int,
+    nx: int,
+    ny: int,
+):
+    
+    id_0 = boundaries(i_d, nx, bcx_kind)
+    id_p1 = boundaries(i_d + 1, nx, bcx_kind)
+    
+    jd_0 = boundaries(j_d, ny, bcy_kind)
+    jd_p1 = boundaries(j_d + 1, ny, bcy_kind)
+    
+    psi_d = np.zeros((nx, ny))
+    for i in range(nx):
+        for j in range(ny):
+            psi_d[i, j] = min(
+                psi[id_0[i, j], jd_0[i, j]],
+                psi[id_0[i, j], jd_p1[i, j]],
+                psi[id_p1[i, j], jd_0[i, j]],
+                psi[id_p1[i, j], jd_p1[i, j]],
+            )
+    
+    return psi_d
