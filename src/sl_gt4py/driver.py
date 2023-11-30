@@ -8,7 +8,7 @@ from sl_gt4py.sl_2D import sl_xy
 from sl_gt4py.smilag_init import sl_init
 from sl_gt4py.backup import backup
 from sl_python.blossey import blossey_velocity
-from utils.cfl import cfl_1d
+from sl_python.cfl import cfl_1d
 
 # Driver
 def sl_driver(
