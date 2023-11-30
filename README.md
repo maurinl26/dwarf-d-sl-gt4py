@@ -1,2 +1,7 @@
 # sl_gt4py
-Semi-lagrangian advection on GT4Py framework
+
+Point-wise Semi-lagrangian tracer advection module on python and GT4Py.
+
+## Python kernel
+
+## GT4Py kernel
