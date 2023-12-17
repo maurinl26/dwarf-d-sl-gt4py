@@ -5,9 +5,6 @@ import sys
 import yaml
 
 
-sys.path.append("/home/maurinl/sl_gt4py/src")
-print(sys.path)
-
 from sl_python.blossey import blossey_tracer, blossey_velocity, init_blossey, tracer_shape
 from utils.cfl import cfl_1d
 from sl_python.plot import plot_blossey, plot_tracer_against_reference

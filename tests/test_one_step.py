@@ -9,8 +9,6 @@ import yaml
 
 from sl_python.plot import plot_blossey
 
-sys.path.append("/home/maurinl/sl_gt4py/src")
-print(sys.path)
 
 from sl_python.interpolation import interpolate_cub_2d, interpolate_lin_2d
 from sl_python.sl_2D import sl_init, sl_xy
