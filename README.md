@@ -1,2 +1,2 @@
-# sl_gt4py
-Semi-Lagrangian advection on GT4Py framework
+# sl-gt4py
+Semi-Lagrangian advection scheme with python
