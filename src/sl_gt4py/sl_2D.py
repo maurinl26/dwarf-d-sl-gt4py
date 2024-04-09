@@ -2,7 +2,7 @@ from typing import Tuple
 import numpy as np
 import logging
 
-from gt4py.cartesian import gtscript
+from gt4py.cartesian.gtscript import Field
 
 from config import Config
 from sl_gt4py.copy import copy
@@ -17,30 +17,30 @@ logging.getLogger(__name__)
 # ELARCHE
 def lagrangian_search(
     config: Config,
-    vx: gtscript.Field[dtype],
-    vy: gtscript.Field[dtype],
-    vx_e: gtscript.Field[dtype],
-    vy_e: gtscript.Field[dtype],
-    I: gtscript.Field[dtype],
-    J: gtscript.Field[dtype],
-    I_d: gtscript.Field[dtype],
-    J_d: gtscript.Field[dtype],
-    lx: gtscript.Field[dtype],
-    ly: gtscript.Field[dtype],
-    vx_tmp: gtscript.Field[dtype],
-    vy_tmp: gtscript.Field[dtype],
+    vx: Field[dtype],
+    vy: Field[dtype],
+    vx_e: Field[dtype],
+    vy_e: Field[dtype],
+    I: Field[dtype],
+    J: Field[dtype],
+    I_d: Field[dtype],
+    J_d: Field[dtype],
+    lx: Field[dtype],
+    ly: Field[dtype],
+    vx_tmp: Field[dtype],
+    vy_tmp: Field[dtype],
     nitmp: int = 4,
 ):
     """Research departure point for a given grid and velocity field.
     Terminates on nsiter iterations.
 
     Args:
-        x (gtscript.Field[dtype]): grid of arrival points
-        v (gtscript.Field[dtype]): velocity fields
+        x (Field[dtype]): grid of arrival points
+        v (Field[dtype]): velocity fields
         nsiter (int, optional): number of iterations. Defaults to 10.
 
     Returns:
-        gtscript.Field[dtype]: departure point
+        Field[dtype]: departure point
     """    
     copy(vx, vx_tmp, vy, vy_tmp)
 
@@ -84,20 +84,20 @@ def lagrangian_search(
 
 def sl_xy(
     config: Config,
-    vx: gtscript.Field[dtype],
-    vy: gtscript.Field[dtype],
-    vx_e: gtscript.Field[dtype],
-    vy_e: gtscript.Field[dtype],
-    tracer: gtscript.Field[dtype],
-    tracer_e: gtscript.Field[dtype],
-    I: gtscript.Field[dtype_int], 
-    J: gtscript.Field[dtype_int], 
-    I_d: gtscript.Field[dtype_int],
-    J_d: gtscript.Field[dtype_int],
-    lx: gtscript.Field[dtype],
-    ly: gtscript.Field[dtype],
-    vx_tmp: gtscript.Field[dtype],
-    vy_tmp: gtscript.Field[dtype],
+    vx: Field[dtype],
+    vy: Field[dtype],
+    vx_e: Field[dtype],
+    vy_e: Field[dtype],
+    tracer: Field[dtype],
+    tracer_e: Field[dtype],
+    I: Field[dtype_int], 
+    J: Field[dtype_int], 
+    I_d: Field[dtype_int],
+    J_d: Field[dtype_int],
+    lx: Field[dtype],
+    ly: Field[dtype],
+    vx_tmp: Field[dtype],
+    vy_tmp: Field[dtype],
     nitmp: int,
     filter: bool = True,
 ):
@@ -107,17 +107,17 @@ def sl_xy(
 
     Args:
         config (Config): grid configuration
-        vx (gtscript.Field[dtype]): velocity on x 
-        vy (gtscript.Field[dtype]): velocity on y 
-        vx_e (gtscript.Field[dtype]): velocity on x at t + dt
-        vy_e (gtscript.Field[dtype]): velocity on y at t + dt
-        tracer (gtscript.Field[dtype]): tracer field 
-        tracer_e (gtscript.Field[dtype]): tracer at t + dt (ebauche)
+        vx (Field[dtype]): velocity on x 
+        vy (Field[dtype]): velocity on y 
+        vx_e (Field[dtype]): velocity on x at t + dt
+        vy_e (Field[dtype]): velocity on y at t + dt
+        tracer (Field[dtype]): tracer field 
+        tracer_e (Field[dtype]): tracer at t + dt (ebauche)
         interpolation_function (callable): linear or cubic interpolation
         nitmp (int): number of iterations for departure search
         
     Returns:
-        gtscript.Field[dtype]: tracer outline (ebauche) at t + dt 
+        Field[dtype]: tracer outline (ebauche) at t + dt 
     """
         
     # Recherche semi lag

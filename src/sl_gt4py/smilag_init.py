@@ -1,6 +1,6 @@
 import logging
 
-from gt4py.cartesian import gtscript
+from gt4py.cartesian.gtscript import Field
 
 from sl_gt4py.gt4py_config import backend, backend_opts, dtype
 
@@ -8,12 +8,12 @@ logging.getLogger(__name__)
 
 @gtscript.stencil(backend=backend, **backend_opts)
 def sl_init(
-    vx_e: gtscript.Field[dtype],
-    vy_e: gtscript.Field[dtype],
-    vx: gtscript.Field[dtype],
-    vy: gtscript.Field[dtype],
-    vx_p: gtscript.Field[dtype],
-    vy_p: gtscript.Field[dtype],
+    vx_e: Field[dtype],
+    vy_e: Field[dtype],
+    vx: Field[dtype],
+    vy: Field[dtype],
+    vx_p: Field[dtype],
+    vy_p: Field[dtype],
     lsettls: bool = True,
 ):
     """Initialize draft velocities with either 
@@ -21,16 +21,16 @@ def sl_init(
     LNESN (not LSETTLS) method : 1 field for velocity (at t)
 
     Args:
-        vx_e (gtscript.Field[dtype]): outlined velocity at t + dt on x
-        vy_e (gtscript.Field[dtype]): outlined velocity at t + dt on y
-        vx (gtscript.Field[dtype]): velocity at t on x
-        vy (gtscript.Field[dtype]): velocity at t on y
-        vx_p (gtscript.Field[dtype]): velocity at t - dt on x
-        vy_p (gtscript.Field[dtype]): velcoity at t - dt on y 
+        vx_e (Field[dtype]): outlined velocity at t + dt on x
+        vy_e (Field[dtype]): outlined velocity at t + dt on y
+        vx (Field[dtype]): velocity at t on x
+        vy (Field[dtype]): velocity at t on y
+        vx_p (Field[dtype]): velocity at t - dt on x
+        vy_p (Field[dtype]): velcoity at t - dt on y 
         lsettls (bool, optional): LSETTLS or LNESC. Defaults to True.
 
     Returns:
-        Tuple[gtscript.Field[dtype]]: velocities at t and t + dt
+        Tuple[Field[dtype]]: velocities at t and t + dt
     """
     
     # LSETTLS

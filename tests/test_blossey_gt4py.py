@@ -5,50 +5,28 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import yaml
+<<<<<<< HEAD
 import gt4py
 
 from sl_gt4py.gt4py_config import dtype, backend, origin, backend_opts
 from sl_python_numba.interpolation import interpolate_cub_2d
 from sl_python.sl_2D import sl_xy, sl_init
+=======
+from gt4py.storage import zeros
+
+from sl_python.blossey import blossey_tracer, blossey_velocity, init_blossey, tracer_shape
+from sl_gt4py.gt4py_config import dtype, backend, origin, backend_opts
+from sl_python_numba.interpolation import interpolate_cub_2d
+from sl_gt4py.sl_2D import sl_xy, sl_init
+>>>>>>> 024babf82bebe5e64c3cff23bac714c34320f09a
 from config import Config
 from sl_python.plot import plot_blossey, plot_tracer_against_reference
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 
-# Pointwise functions
-def r(x, y):
-    return np.sqrt((x - 0.5) ** 2 + (y - 0.5) ** 2)
-
-
-def r_tilde(x, y):
-    return 5 * np.sqrt((x - 0.3) ** 2 + (y - 0.5) ** 2)
-
-
-def theta(x, y):
-    return np.arctan((y - 0.5) / (x - 0.5))
-
-
-def u(r, t, T):
-    return (4 * np.pi * r / T) * (
-        1 + np.cos(2 * np.pi * t / T) * (1 - (4 * r) ** 6) / (1 + (4 * r) ** 6)
-    )
-
-
 def cfl_1d(u: float, dx: float, dt: float):
     return u * dt / dx
-
-
-def tracer_shape(x: float, y: float, tracer0: float):
-    r_t = r_tilde(x, y)
-    return np.where(r_t < 1, tracer0 + ((1 + np.cos(np.pi * r_t)) / 2) ** 2, tracer0)
-
-
-# Field functions
-def polar_coordinates(xcr: np.ndarray, ycr: np.ndarray):
-    R = r(xcr, ycr)
-    Theta = theta(xcr, ycr)
-    return R, Theta
 
 
 # Taken from Christian Kühnlein
@@ -221,12 +199,21 @@ if __name__ == "__main__":
     logging.info(f"N steps : {nstep:.06f} s")
     
     # Velocities
+<<<<<<< HEAD
     vx = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
     vy = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
     vx_p = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
     vy_p = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
     vx_e = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
     vy_e = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
+=======
+    vx = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    vy = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    vx_p = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    vy_p = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    vx_e = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    vy_e = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+>>>>>>> 024babf82bebe5e64c3cff23bac714c34320f09a
     
     # Init velocities (numpy -> gt4py)
     init_state = init_blossey(
@@ -240,8 +227,13 @@ if __name__ == "__main__":
     vy_e[:, :, :] = init_state[5][:, :, np.newaxis]   
     
     # Tracer
+<<<<<<< HEAD
     tracer = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
     tracer_e = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
+=======
+    tracer = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    tracer_e = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+>>>>>>> 024babf82bebe5e64c3cff23bac714c34320f09a
     
     tracer_state = blossey_tracer(config.xcr, config.ycr)
     tracer[:, :, :] = tracer_state[0][:, :, np.newaxis]

@@ -4,7 +4,8 @@ import numpy as np
 import sys
 import yaml
 
-from sl_python.blossey import blossey_tracer, blossey_velocity, init_blossey
+from sl_python.blossey import blossey_tracer, blossey_velocity, init_blossey, tracer_shape
+from utils.cfl import cfl_1d
 from sl_python.plot import plot_blossey, plot_tracer_against_reference
 from sl_python.interpolation import interpolate_cub_2d
 from sl_python.sl_2D import sl_xy, sl_init

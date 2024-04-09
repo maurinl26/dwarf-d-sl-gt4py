@@ -3,7 +3,7 @@ __pycache__
 .vscode
 .gt_cache
 .dacecache
-sl_venv
+.venv
 .pytest_cache
 figures
 

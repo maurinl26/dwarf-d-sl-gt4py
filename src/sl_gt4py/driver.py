@@ -1,6 +1,6 @@
 import logging
 import numpy as np
-from gt4py.cartesian import gtscript
+from gt4py.cartesian.gtscript import Field
 
 from config import Config
 from sl_gt4py.gt4py_config import dtype, dtype_int
@@ -13,22 +13,22 @@ from sl_python.cfl import cfl_1d
 # Driver
 def sl_driver(
     config: Config,
-    vx: gtscript.Field[dtype],
-    vy: gtscript.Field[dtype],
-    vx_e: gtscript.Field[dtype],
-    vy_e: gtscript.Field[dtype],
-    vx_p: gtscript.Field[dtype],
-    vy_p: gtscript.Field[dtype],
-    vx_tmp: gtscript.Field[dtype],
-    vy_tmp: gtscript.Field[dtype],
-    tracer: gtscript.Field[dtype],
-    tracer_e: gtscript.Field[dtype],
-    I: gtscript.Field[dtype],
-    J: gtscript.Field[dtype], 
-    I_d: gtscript.Field[dtype],
-    J_d: gtscript.Field[dtype],
-    lx: gtscript.Field[dtype],
-    ly: gtscript.Field[dtype],
+    vx: Field[dtype],
+    vy: Field[dtype],
+    vx_e: Field[dtype],
+    vy_e: Field[dtype],
+    vx_p: Field[dtype],
+    vy_p: Field[dtype],
+    vx_tmp: Field[dtype],
+    vy_tmp: Field[dtype],
+    tracer: Field[dtype],
+    tracer_e: Field[dtype],
+    I: Field[dtype],
+    J: Field[dtype], 
+    I_d: Field[dtype],
+    J_d: Field[dtype],
+    lx: Field[dtype],
+    ly: Field[dtype],
     lsettls: bool,
     model_starttime: float,
     model_endtime: float,
@@ -37,16 +37,16 @@ def sl_driver(
 
     Args:
         config (Config): _description_
-        vx (gtscript.Field[dtype]): _description_
-        vy (gtscript.Field[dtype]): _description_
-        vx_e (gtscript.Field[dtype]): _description_
-        vy_e (gtscript.Field[dtype]): _description_
-        vx_p (gtscript.Field[dtype]): _description_
-        vy_p (gtscript.Field[dtype]): _description_
-        vx_tmp (gtscript.Field[dtype]): _description_
-        vy_tmp (gtscript.Field[dtype]): _description_
-        tracer (gtscript.Field[dtype]): _description_
-        tracer_e (gtscript.Field[dtype]): _description_
+        vx (Field[dtype]): _description_
+        vy (Field[dtype]): _description_
+        vx_e (Field[dtype]): _description_
+        vy_e (Field[dtype]): _description_
+        vx_p (Field[dtype]): _description_
+        vy_p (Field[dtype]): _description_
+        vx_tmp (Field[dtype]): _description_
+        vy_tmp (Field[dtype]): _description_
+        tracer (Field[dtype]): _description_
+        tracer_e (Field[dtype]): _description_
         I (_type_): _description_
         J (_type_): _description_
         I_d (_type_): _description_
