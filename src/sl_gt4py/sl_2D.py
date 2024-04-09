@@ -138,9 +138,7 @@ def sl_xy(
         nitmp=nitmp,
     )
     
-
     # Interpolate
-    # (Hors stencil)
     tracer_e = numba_interpolate_cub_2d(
         tracer,
         lx_d, 

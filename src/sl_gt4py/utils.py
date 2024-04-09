@@ -1,6 +1,4 @@
 import gt4py.cartesian as gtscript
-import numpy as np
-from itertools import product
 
 from sl_gt4py.gt4py_config import dtype, backend
 from fvms.geometry.coordinates import Grid
