@@ -41,7 +41,8 @@ def sl_driver(
     lsettls: bool,
     nitmp: int,
     model_endtime: float,
-    model_starttime: float
+    model_starttime: float,
+    T: float
 ):
     tracer_ref = tracer.copy()
 
@@ -95,40 +96,5 @@ def sl_driver(
     logging.info(f"Error E_inf : {e_inf}")
     logging.info(f"Error E_2 : {e_2}")
 
-    plot_blossey(config.xcr, config.ycr, vx, vy, tracer, t, f"./figures/uniform_advection/uniform_advection_{t:.02f}.pdf")
-
-
-if __name__ == "__main__":
+    plot_blossey(config.xcr, config.ycr, vx, vy, tracer, t, f"./figures/uniform_advection/uniform_advection_{t:.02f}.pdf")   
     
-    config_file = "./config/uniform_advection.yml"
-    with open(config_file, 'r') as file:
-        conf_dict = yaml.safe_load(file)
-        config = Config(**conf_dict)
-        
-        
-    # Shift in config file
-    T = 1
-    t = 0
-    U, V = 1, 1
-    lsettls = True
-    nitmp=4
-    
-    logging.info("Config")
-    logging.info(f"time step dt : {config.dt} s")
-    logging.info(f"dx : {config.dx}, dy : {config.dy}")
-    logging.info("Uniform velocity U = {U}, V = {V}")
-
-    vx, vy, vx_p, vy_p, vx_e, vy_e = init_uniform(
-        U, V, config.nx, config.ny
-    )
-    tracer, tracer_e = blossey_tracer(config.xcr, config.ycr)
-    logging.info(f"Tracer : min {tracer.min():.02f}, max {tracer.max():.02f}, mean {tracer.mean():.02f}")
-    plot_blossey(
-        config.xcr, config.ycr, vx, vy, tracer, 0, f"./figures/uniform_advection/uniform_advection_{t:.02f}.pdf"
-    )
-
-    # Advection encapsulation
-    start_time = time.time()
-    sl_driver(config, vx, vy, vx_e, vy_e, vx_p, vy_p, tracer, tracer_e, lsettls, nitmp, config.model_endtime, config.model_starttime)
-    duration = time.time() - start_time
-    logging.info(f"Duration : {duration} s")

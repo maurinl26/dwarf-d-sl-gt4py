@@ -4,16 +4,12 @@ import numpy as np
 import sys
 import yaml
 
-
-sys.path.append("/home/maurinl/sl_gt4py/src")
-print(sys.path)
-
-from sl_python.blossey import blossey_tracer, blossey_velocity, init_blossey, tracer_shape
-from utils.cfl import cfl_1d
+from sl_python.blossey import blossey_tracer, blossey_velocity, init_blossey
 from sl_python.plot import plot_blossey, plot_tracer_against_reference
 from sl_python.interpolation import interpolate_cub_2d
 from sl_python.sl_2D import sl_xy, sl_init
 from config import Config
+from utils.cfl import cfl_1d
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
@@ -37,6 +33,7 @@ def sl_driver(
     lsettls: bool,
     model_starttime: float,
     model_endtime: float,
+    T: float = 1
 ):
     tracer_ref = tracer.copy()
 
@@ -106,47 +103,4 @@ def sl_driver(
     
     plot_tracer_against_reference(config.xcr, config.ycr, tracer, tracer_ref, e_2, e_inf, f"./figures/blossey/blossey_ref.pdf", cfl_max, config.dx)
 
-if __name__ == "__main__":
-    # Shift in config file
     
-    config_file = "./config/durran_blossey.yml"
-    with open(config_file, 'r') as file:
-        conf_dict = yaml.safe_load(file)
-        
-        config = Config(**conf_dict)
-    
-    # LSETTLS  
-    lsettls = True
-    
-    # Pour info
-    T = config.model_endtime - config.model_starttime
-    t = config.model_starttime
-    nstep = np.ceil((config.model_endtime - config.model_starttime) / config.dt)
-
-    logging.info(f"Time step dt : {config.dt:.06f} s")
-    logging.info(f"N steps : {nstep:.06f} s")
-
-    vx, vy, vx_p, vy_p, vx_e, vy_e = init_blossey(
-        config.xcr, config.ycr, t, config.dt, config.dx, config.dy, config.nx, config.ny
-    )
-    tracer, tracer_e = blossey_tracer(config.xcr, config.ycr)
-    plot_blossey(config.xcr, config.ycr, vx, vy, tracer, "./figures/blossey/blossey_0.pdf")
-
-    # Advection encapsulation
-    start_time = time.time()
-    sl_driver(
-        config,
-        vx,
-        vy,
-        vx_e,
-        vy_e,
-        vx_p,
-        vy_p,
-        tracer,
-        tracer_e,
-        lsettls,
-        config.model_starttime,
-        config.model_endtime,
-    )
-    duration = time.time() - start_time
-    logging.info(f"Duration : {duration} s")

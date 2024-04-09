@@ -7,14 +7,11 @@ import sys
 import yaml
 import gt4py
 
-sys.path.append("/home/maurinl/sl_gt4py/src")
-print(sys.path)
-
 from sl_gt4py.gt4py_config import dtype, backend, origin, backend_opts
 from sl_python_numba.interpolation import interpolate_cub_2d
-from sl_python_numba.sl_2D import sl_xy, sl_init
+from sl_python.sl_2D import sl_xy, sl_init
 from config import Config
-from .test_blossey import plot_blossey, plot_tracer_against_reference
+from sl_python.plot import plot_blossey, plot_tracer_against_reference
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
@@ -192,6 +189,16 @@ def sl_driver(
         courant_ymax = np.max(cfl_1d(vy_e, config.dy, config.dt))
 
         logging.info(f"Maximum courant number : {max(courant_xmax, courant_ymax):.02f}")
+        
+        
+fieldnames = [
+    "vx",
+    "vx_e",
+    "vy",
+    "vy_e",
+    "tracer", 
+    "tracer_e"
+]
 
 if __name__ == "__main__":
     # Shift in config file
@@ -214,31 +221,31 @@ if __name__ == "__main__":
     logging.info(f"N steps : {nstep:.06f} s")
     
     # Velocities
-    vx = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
-    vy = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
-    vx_p = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
-    vy_p = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
-    vx_e = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
-    vy_e = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    vx = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
+    vy = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
+    vx_p = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
+    vy_p = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
+    vx_e = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
+    vy_e = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
     
     # Init velocities (numpy -> gt4py)
     init_state = init_blossey(
          config.xcr, config.ycr, t, config.dt, config.dx, config.dy, config.nx, config.ny
     )
-    vx[:, :] = init_state[0]
-    vy[:, :] = init_state[1]
-    vx_p[:, :] = init_state[2]
-    vy_p[:, :] = init_state[3]
-    vx_e[:, :] = init_state[4]
-    vy_e[:, :] = init_state[5]    
+    vx[:, :, :] = init_state[0][:, :, np.newaxis]
+    vy[:, :, :] = init_state[1][:, :, np.newaxis]
+    vx_p[:, :, :] = init_state[2][:, :, np.newaxis]
+    vy_p[:, :, :] = init_state[3][:, :, np.newaxis]
+    vx_e[:, :, :] = init_state[4][:, :, np.newaxis]
+    vy_e[:, :, :] = init_state[5][:, :, np.newaxis]   
     
     # Tracer
-    tracer = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
-    tracer_e = gt4py.storage((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
+    tracer = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
+    tracer_e = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
     
     tracer_state = blossey_tracer(config.xcr, config.ycr)
-    tracer[:, :] = tracer_state[0]
-    tracer_e[:, :] = tracer_state[1]
+    tracer[:, :, :] = tracer_state[0][:, :, np.newaxis]
+    tracer_e[:, :, :] = tracer_state[1][:, :, np.newaxis]
 
     # Advection encapsulation
     start_time = time.time()
@@ -265,7 +272,7 @@ if __name__ == "__main__":
     out_vy = np.asarray(vy)
     
     e_inf = np.max(np.abs(tracer - tracer_state[0]))
-    e_2 = np.sqrt((1 / (config.nx * config.ny)) * np.sum((tracer - tracer_state[0]) ** 2))
+    e_2 = np.sqrt((1 / (config.nx * config.ny, config.nz)) * np.sum((tracer - tracer_state[0]) ** 2))
 
     plot_blossey(config.xcr, config.ycr, out_vx, out_vy, out_tracer, 1)
     plot_tracer_against_reference(config.xcr, config.yxr, out_tracer, tracer_state[0], e_2, e_inf)
