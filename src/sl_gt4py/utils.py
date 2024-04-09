@@ -1,8 +1,4 @@
-<<<<<<< HEAD
-import gt4py.cartesian as gtscript
-=======
 from gt4py.cartesian.gtscript import Field, stencil, function
->>>>>>> 024babf82bebe5e64c3cff23bac714c34320f09a
 
 from sl_gt4py.gt4py_config import dtype, backend
 from fvms.geometry.coordinates import Grid
