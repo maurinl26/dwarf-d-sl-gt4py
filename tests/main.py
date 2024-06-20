@@ -160,7 +160,7 @@ def run_one_step(config_file: str):
     tracer_ref = tracer.copy()
     
     start_time = time.time()
-    tracer  = one_step_driver(config, vx, vy, vx_e, vy_e, vx_p, vy_p, tracer, tracer_e, lsettls, interpolate_cub_2d)
+    tracer  = one_step_driver(config, vx, vy, vx_e, vy_e, vx_p, vy_p, tracer, tracer_e, lsettls, interpolate_lin_2d)
     duration = time.time() - start_time
     logging.info(f"Duration : {duration:.02f} s")
     
