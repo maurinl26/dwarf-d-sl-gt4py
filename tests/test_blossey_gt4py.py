@@ -5,20 +5,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 import sys
 import yaml
-<<<<<<< HEAD
-import gt4py
-
-from sl_gt4py.gt4py_config import dtype, backend, origin, backend_opts
-from sl_python_numba.interpolation import interpolate_cub_2d
-from sl_python.sl_2D import sl_xy, sl_init
-=======
 from gt4py.storage import zeros
 
 from sl_python.blossey import blossey_tracer, blossey_velocity, init_blossey, tracer_shape
-from sl_gt4py.gt4py_config import dtype, backend, origin, backend_opts
+from sl_gt4py.gt4py_config import dtype, backend, origin
 from sl_python_numba.interpolation import interpolate_cub_2d
 from sl_gt4py.sl_2D import sl_xy, sl_init
->>>>>>> 024babf82bebe5e64c3cff23bac714c34320f09a
 from config import Config
 from sl_python.plot import plot_blossey, plot_tracer_against_reference
 
@@ -58,7 +50,7 @@ def blossey_stf(xcr: np.ndarray, ycr: np.ndarray, mt: float) -> np.ndarray:
     return stf
 
 
-# Taken from FVM Slim (Christian)
+# Taken from FVM Slim
 def stream_function_xy(stf: np.ndarray, dx, dy) -> Tuple[np.ndarray]:
     """Computes velocity components based on stream function
 
@@ -199,21 +191,12 @@ if __name__ == "__main__":
     logging.info(f"N steps : {nstep:.06f} s")
     
     # Velocities
-<<<<<<< HEAD
-    vx = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
-    vy = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
-    vx_p = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
-    vy_p = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
-    vx_e = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
-    vy_e = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
-=======
     vx = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
     vy = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
     vx_p = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
     vy_p = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
     vx_e = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
     vy_e = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
->>>>>>> 024babf82bebe5e64c3cff23bac714c34320f09a
     
     # Init velocities (numpy -> gt4py)
     init_state = init_blossey(
@@ -227,13 +210,8 @@ if __name__ == "__main__":
     vy_e[:, :, :] = init_state[5][:, :, np.newaxis]   
     
     # Tracer
-<<<<<<< HEAD
-    tracer = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
-    tracer_e = gt4py.storage.zeros((config.nx, config.ny, config.nz), dtype, backend=backend, aligned_index=origin)
-=======
     tracer = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
     tracer_e = zeros((config.nx, config.ny), dtype, backend=backend, aligned_index=origin)
->>>>>>> 024babf82bebe5e64c3cff23bac714c34320f09a
     
     tracer_state = blossey_tracer(config.xcr, config.ycr)
     tracer[:, :, :] = tracer_state[0][:, :, np.newaxis]

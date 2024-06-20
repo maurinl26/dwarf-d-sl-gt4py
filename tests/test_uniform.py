@@ -1,13 +1,10 @@
 import logging
-import time
 import numpy as np
-import matplotlib.pyplot as plt
 import sys
 
-import yaml
 
 from sl_python.plot import plot_blossey
-from tests.test_blossey import backup, blossey_tracer
+from test_blossey import backup
 
 
 from sl_python.interpolation import interpolate_lin_2d

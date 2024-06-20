@@ -3,13 +3,13 @@ import time
 import numpy as np
 import yaml
 from config import Config
-from sl_gt4py.driver import sl_driver
+from sl_python.driver import sl_driver
 from sl_python.blossey import blossey_tracer, init_blossey
 from sl_python.plot import plot_blossey
 import typer
 
-from tests.test_one_step import one_step_driver
-from tests.test_uniform import init_uniform 
+from test_one_step import one_step_driver
+from test_uniform import init_uniform 
 
 app = typer.Typer()
 
