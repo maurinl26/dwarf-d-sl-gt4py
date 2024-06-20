@@ -1,4 +1,5 @@
 from gt4py.cartesian import gtscript
+from gt4py.cartesian.gtscript import interval, PARALLEL, computation
 
 from sl_gt4py.gt4py_config import backend, backend_opts, dtype
 
