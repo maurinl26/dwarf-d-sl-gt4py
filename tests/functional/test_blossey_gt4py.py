@@ -9,7 +9,7 @@ import gt4py
 
 
 from sl_gt4py.gt4py_config import dtype, backend, origin, backend_opts
-from sl_python_numba.interpolation import interpolate_cub_2d
+from sl_python.interpolation.njit_interpolation import interpolate_cub_2d
 from sl_python.sl_2D import sl_xy, sl_init
 from config import Config
 from .test_blossey import plot_blossey, plot_tracer_against_reference
