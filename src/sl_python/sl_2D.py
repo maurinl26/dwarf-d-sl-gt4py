@@ -5,7 +5,7 @@ import logging
 from config import Config
 from sl_python.diagnostics import diagnostic_lipschitz
 from sl_python.filter import overshoot_filter, undershoot_filter
-from sl_python.interpolation import (
+from sl_python.interpolation.interpolation_2d import (
     interpolate_lin_2d,
     max_interpolator_2d,
     min_interpolator_2d,
