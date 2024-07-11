@@ -1,9 +1,9 @@
 import dace
-from sl_gt4py.dace_boundaries import boundaries
+import numpy as np
 
-NX = dace.symbol("Nx")
-NY = dace.symbol("Ny")
-NZ = dace.symbol("Nz")
+NX = dace.symbol("NX")
+NY = dace.symbol("NX")
+NZ = dace.symbol("NZ")
 
 @dace.function
 def p0_lin(l: dace.float64):
@@ -13,13 +13,11 @@ def p0_lin(l: dace.float64):
 def p1_lin(l: dace.float64):
     return l
 
-import numpy as np
-
-@dace.program(auto_optimize=True)
+@dace.function
 def boundaries(
     indice: dace.float64,
     n: dace.int32,
-    bc_kind
+    bc_kind: dace.bool
 ):
     if bc_kind == 0:
         
@@ -32,11 +30,10 @@ def boundaries(
 
     else:
         indice = indice % n
-
-
+        
     return indice
 
-@dace.program(auto_optimize=True)
+@dace.function
 def dace_interpolate_lin_2d(
     psi: dace.float64[NX, NY, NY],
     lx: dace.float64[NX, NY, NY],
