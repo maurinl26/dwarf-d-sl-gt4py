@@ -7,12 +7,10 @@ import sys
 import yaml
 import gt4py
 
-sys.path.append("/home/maurinl/sl_gt4py/src")
-print(sys.path)
 
 from sl_gt4py.gt4py_config import dtype, backend, origin, backend_opts
 from sl_python_numba.interpolation import interpolate_cub_2d
-from sl_python_numba.sl_2D import sl_xy, sl_init
+from sl_python.sl_2D import sl_xy, sl_init
 from config import Config
 from .test_blossey import plot_blossey, plot_tracer_against_reference
 
@@ -199,7 +197,6 @@ if __name__ == "__main__":
     config_file = "./config/durran_blossey.yml"
     with open(config_file, 'r') as file:
         conf_dict = yaml.safe_load(file)
-        
         config = Config(**conf_dict)
     
     # LSETTLS  

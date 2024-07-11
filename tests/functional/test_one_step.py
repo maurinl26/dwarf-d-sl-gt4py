@@ -1,22 +1,16 @@
 import logging
 import time
-from typing import Tuple
 import numpy as np
-import matplotlib.pyplot as plt
 import sys
 
 import yaml
 
 from sl_python.plot import plot_blossey
-
-sys.path.append("/home/maurinl/sl_gt4py/src")
-print(sys.path)
-
-from sl_python.interpolation import interpolate_cub_2d, interpolate_lin_2d
+from sl_python.interpolation.interpolation import interpolate_cub_2d, interpolate_lin_2d
 from sl_python.sl_2D import sl_init, sl_xy
-from test_blossey import tracer_shape, blossey_tracer, r_tilde
+from test_blossey import blossey_tracer
 from config import Config
-from utils.cfl import cfl_1d
+from sl_python.cfl import cfl_1d
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 logging.getLogger(__name__)

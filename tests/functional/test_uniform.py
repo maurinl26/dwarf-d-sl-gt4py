@@ -6,7 +6,7 @@ import sys
 import yaml
 
 from sl_python.plot import plot_blossey
-from tests.test_blossey import backup, blossey_tracer
+from tests.functional.test_blossey import backup, blossey_tracer
 from sl_python.interpolation.interpolation import interpolate_lin_2d
 from sl_python.sl_2D import sl_init, sl_xy
 from config import Config
