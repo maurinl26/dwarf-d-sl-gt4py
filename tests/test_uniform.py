@@ -1,21 +1,16 @@
 import logging
 import time
 import numpy as np
-import matplotlib.pyplot as plt
 import sys
 
 import yaml
 
 from sl_python.plot import plot_blossey
 from tests.test_blossey import backup, blossey_tracer
-
-sys.path.append("/home/maurinl/sl_gt4py/src")
-print(sys.path)
-
-from sl_python.interpolation import interpolate_lin_2d
+from sl_python.interpolation.interpolation import interpolate_lin_2d
 from sl_python.sl_2D import sl_init, sl_xy
 from config import Config
-from utils.cfl import cfl_1d
+from sl_python.cfl import cfl_1d
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 def init_uniform(U: float, V: float, nx: int, ny: int):
