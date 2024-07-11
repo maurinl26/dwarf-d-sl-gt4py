@@ -1,16 +1,8 @@
 import numpy as np
-import sys
-import yaml
 import gt4py
-from typing import Tuple
 
-sys.path.append("/home/maurinl/sl_gt4py/src")
-sys.path.append("/home/maurinl/sl_gt5py/tests")
-print(sys.path)
-
-from sl_gt4py.gt4py_config import dtype, dtype_int, backend, origin
+from sl_gt4py.gt4py_config import dtype, backend, origin
 from sl_gt4py.smilag_init import sl_init
-from config import Config
 from sl_python.blossey import init_blossey
 
 
