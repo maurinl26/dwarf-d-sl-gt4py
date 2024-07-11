@@ -1,20 +1,22 @@
 from typing import Tuple
 import numpy as np
 import logging
-
+import dace
 from gt4py.cartesian import gtscript
 
 from config import Config
 from sl_gt4py.copy import copy
-from sl_gt4py.departure_search import dep_search_1d
+from sl_gt4py.departure_search import _dep_search_1d
 from sl_gt4py.gt4py_config import dtype, dtype_int
-from sl_gt4py.interpolation.numba_interpolation import numba_interpolate_cub_2d, numba_interpolate_lin_2d
+from sl_gt4py.interpolation.numba_interpolation import numba_interpolate_cub_2d
 from sl_gt4py.interpolation.dace_interpolation import dace_interpolate_lin_2d
 
 logging.getLogger(__name__)
 
+NITMP = dace.symbol("NITMP")
 
 # ELARCHE
+@dace.program
 def lagrangian_search(
     config: Config,
     vx: gtscript.Field[dtype],
@@ -44,15 +46,14 @@ def lagrangian_search(
     """    
     copy(vx, vx_tmp, vy, vy_tmp)
 
-    # Array declaration
-    for l in range(nitmp):
+    # TODO: dace loop
+    for l in range(NITMP):
                 
-        dep_search_1d(I, vx_e, vx_tmp, lx, I_d, config.dx, config.dth)
-        dep_search_1d(J, vy_e, vy_tmp, ly, J_d, config.dy, config.dth)
+        _dep_search_1d(I, vx_e, vx_tmp, lx, I_d, config.dx, config.dth)
+        _dep_search_1d(J, vy_e, vy_tmp, ly, J_d, config.dy, config.dth)
 
         # Hors stencil
         ####### Interpolation for fields ########
-        
         vx_tmp = dace_interpolate_lin_2d(
             vx,
             lx, 

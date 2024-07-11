@@ -7,10 +7,12 @@ from sl_gt4py.gt4py_config import dtype, dtype_int
 from sl_gt4py.sl_2D import sl_xy
 from sl_gt4py.smilag_init import sl_init
 from sl_gt4py.backup import backup
-from sl_python.blossey import blossey_velocity
-from sl_python.cfl import cfl_1d
+from sl_gt4py.blossey_velocity import blossey_velocity
+from sl_gt4py.cfl import _cfl_1d
 
 # Driver
+
+# TODO: dace program
 def sl_driver(
     config: Config,
     vx: gtscript.Field[dtype],
@@ -66,6 +68,8 @@ def sl_driver(
 
     t = model_starttime
     jstep = 0
+    
+    # TODO dace loop
     while t < model_endtime:
         
         jstep += 1
@@ -78,11 +82,12 @@ def sl_driver(
         vx_e_2d, vy_e_2d = blossey_velocity(
             config.xcr, config.ycr, t + config.dt, config.dx, config.dy
         )
-        vx[:, :, :] = vx_2d[:, :, np.newaxis]
-        vy[:, :, :] = vy_2d[:, :, np.newaxis]
-        vx_e[:, :, :] = vx_e_2d[:, :, np.newaxis]
-        vy_e[:, :, :] = vy_e_2d[:, :, np.newaxis]
         
+        
+        # vx[:, :, :] = vx_2d[:, :, np.newaxis]
+        # vy[:, :, :] = vy_2d[:, :, np.newaxis]
+        # vx_e[:, :, :] = vx_e_2d[:, :, np.newaxis]
+        # vy_e[:, :, :] = vy_e_2d[:, :, np.newaxis]
 
         # Estimations
         tracer_e = sl_xy(
@@ -107,8 +112,7 @@ def sl_driver(
         backup(tracer=tracer, tracer_e=tracer_e)
 
         # Diagnostics and outputs
-        # TODO : cfl1d in GT4Py
-        courant_xmax = np.max(cfl_1d(vx_e, config.dx, config.dt))
-        courant_ymax = np.max(cfl_1d(vy_e, config.dy, config.dt))
+        courant_xmax = np.max(_cfl_1d(vx_e, config.dx, config.dt))
+        courant_ymax = np.max(_cfl_1d(vy_e, config.dy, config.dt))
 
         logging.info(f"Maximum courant number : {max(courant_xmax, courant_ymax):.02f}")

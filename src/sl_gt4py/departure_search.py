@@ -4,7 +4,7 @@ from gt4py.cartesian.gtscript import floor
 from sl_gt4py.gt4py_config import backend, backend_opts, dtype, dtype_int
 
 @gtscript.stencil(backend=backend, **backend_opts)
-def dep_search_1d(
+def _dep_search_1d(
     grid_indices: gtscript.Field[dtype_int],
     vx_e: gtscript.Field[dtype],
     vx_tmp: gtscript.Field[dtype],
