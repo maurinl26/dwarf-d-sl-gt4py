@@ -1,7 +1,4 @@
-import sys
 import numpy as np
-
-sys.path.append("/home/maurinl/sl_gt4py/src")
 
 from sl_python.interpolation import interpolate_lin_2d
 from config import Config

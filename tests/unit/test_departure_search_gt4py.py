@@ -5,11 +5,7 @@ import yaml
 import gt4py
 from typing import Tuple
 
-sys.path.append("/home/maurinl/sl_gt4py/src")
-sys.path.append("/home/maurinl/sl_gt5py/tests")
-print(sys.path)
-
-from sl_gt4py.gt4py_config import dtype, dtype_int, backend, origin
+from sl_gt4py.gt4py_config import dtype, dtype_int, backend
 from sl_gt4py.departure_search import dep_search_1d
 from config import Config
 

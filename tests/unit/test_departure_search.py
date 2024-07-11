@@ -1,8 +1,4 @@
-import sys
-
-sys.path.append("/home/maurinl/sl_gt4py/src")
-
-from sl_python.sl_2D import arrival_point_coordinate, dep_search_1d
+from sl_python.sl_2D import dep_search_1d
 
 def test_dep_search_1d():
     xcr = 0
