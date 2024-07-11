@@ -1,8 +1,6 @@
 import logging
-import time
 import numpy as np
 import sys
-import yaml
 
 from sl_python.blossey import blossey_tracer, blossey_velocity, init_blossey, tracer_shape
 from utils.cfl import cfl_1d

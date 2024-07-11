@@ -8,6 +8,7 @@ from sl_python.blossey import blossey_tracer, init_blossey
 from sl_python.plot import plot_blossey
 import typer
 
+from sl_python_numba.interpolation import interpolate_cub_2d
 from test_one_step import one_step_driver
 from test_uniform import init_uniform 
 
@@ -160,7 +161,7 @@ def run_one_step(config_file: str):
     tracer_ref = tracer.copy()
     
     start_time = time.time()
-    tracer  = one_step_driver(config, vx, vy, vx_e, vy_e, vx_p, vy_p, tracer, tracer_e, lsettls, interpolate_lin_2d)
+    tracer  = one_step_driver(config, vx, vy, vx_e, vy_e, vx_p, vy_p, tracer, tracer_e, lsettls, interpolate_cub_2d)
     duration = time.time() - start_time
     logging.info(f"Duration : {duration:.02f} s")
     
