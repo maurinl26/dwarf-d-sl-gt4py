@@ -8,7 +8,6 @@ from config import Config
 from sl_gt4py.copy import copy
 from sl_gt4py.departure_search import _dep_search_1d
 from sl_gt4py.gt4py_config import dtype, dtype_int
-from sl_gt4py.interpolation.numba_interpolation import numba_interpolate_cub_2d
 from sl_gt4py.interpolation.dace_interpolation import dace_interpolate_lin_2d
 
 logging.getLogger(__name__)
@@ -46,7 +45,6 @@ def lagrangian_search(
     """    
     copy(vx, vx_tmp, vy, vy_tmp)
 
-    # TODO: dace loop
     for l in range(NITMP):
                 
         _dep_search_1d(I, vx_e, vx_tmp, lx, I_d, config.dx, config.dth)
@@ -141,8 +139,7 @@ def sl_xy(
     
 
     # Interpolate
-    # (Hors stencil)
-    tracer_e = numba_interpolate_cub_2d(
+    tracer_e = dace_interpolate_lin_2d(
         tracer,
         lx_d, 
         ly_d,

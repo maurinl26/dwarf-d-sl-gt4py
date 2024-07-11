@@ -83,11 +83,6 @@ def sl_driver(
             config.xcr, config.ycr, t + config.dt, config.dx, config.dy
         )
         
-        
-        # vx[:, :, :] = vx_2d[:, :, np.newaxis]
-        # vy[:, :, :] = vy_2d[:, :, np.newaxis]
-        # vx_e[:, :, :] = vx_e_2d[:, :, np.newaxis]
-        # vy_e[:, :, :] = vy_e_2d[:, :, np.newaxis]
 
         # Estimations
         tracer_e = sl_xy(
