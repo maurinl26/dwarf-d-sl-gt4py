@@ -11,6 +11,7 @@ from sl_gt4py.build import (
     dtype,
     update_periodic_layers_using_copy_stencil,
 )
+from sl_gt4py.config import update
 from sl_gt4py.utils.stencil import stencil, stencil_args
 
 if TYPE_CHECKING:
