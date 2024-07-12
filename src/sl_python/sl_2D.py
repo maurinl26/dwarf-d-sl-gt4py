@@ -184,6 +184,7 @@ def sl_xy(
         config.bcy_kind,
         config.nx,
         config.ny,
+        config.nz
     )
 
     # Max et min locaux pour filtage
