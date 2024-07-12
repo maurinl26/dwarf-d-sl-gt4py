@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 import numpy as np
-from typing import TypeVar, Union
+from typing import TypeVar, Union, Tuple
 
 try:
     import cupy as cp
@@ -10,8 +10,8 @@ except ImportError:
 
 T = TypeVar("T")
 
-Pair = tuple[T, T]
-Triple = tuple[T, T, T]
+Pair = Tuple[T, T]
+Triple = Tuple[T, T, T]
 
 if cp is not None:
     ArrayLike = Union[np.ndarray, cp.ndarray]

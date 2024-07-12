@@ -12,8 +12,8 @@ except ImportError:
 import gt4py as gt
 
 from sl_gt4py.build import backend, dtype
-from sl_gt4py.index_space import CartesianSet, IndexSpace, ProductSet
-from sl_gt4py.typingx import ArrayLike
+from sl_gt4py.utils.index_space import CartesianSet, IndexSpace, ProductSet
+from sl_gt4py.utils.typingx import ArrayLike
 
 if TYPE_CHECKING:
     from collections.abc import Hashable
