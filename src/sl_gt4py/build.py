@@ -12,3 +12,8 @@ rebuild = False
 externals = {
     
 }
+
+
+update_periodic_layers_using_copy_stencil = False
+if backend == "dace:gpu":  # initial experiments showed higher performance
+    update_periodic_layers_using_copy_stencil = True

@@ -3,7 +3,7 @@ from gt4py.cartesian import gtscript
 from gt4py.cartesian.gtscript import sqrt, log, cos, atan, I, J, K
 from gt4py.storage import empty
 from sl_gt4py.gt4py_config import backend, backend_opts, dtype, dtype_int
-from config import Config
+from sl_gt4py.config import Config
 from sl_gt4py.utils.storage import managed_temporary
 
 def blossey_velocity(
