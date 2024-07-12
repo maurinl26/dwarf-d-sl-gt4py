@@ -104,3 +104,11 @@ def c2_gradient_w(psi: gtscript.Field, dx: dtype):
 @gtscript.function
 def c2_gradient_y(psi: gtscript.Field, dy: dtype):
     return (psi[1, 0] - psi[-1, 0]) / (2 * dy)
+
+@gtscript.function
+def c2_gradient_s(psi: gtscript.Field, dy: dtype):
+    return (psi[0, 1] - psi[0, 0]) / dy
+
+@gtscript.function
+def c2_gradient_n(psi: gtscript.Field, dy: dtype):
+    return (psi[0, 0] - psi[0, -1]) / dy
