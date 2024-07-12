@@ -5,10 +5,12 @@ import sys
 import yaml
 import gt4py
 
-from config import Config
+from sl_gt4py.config import Config
 from sl_gt4py.build import dtype, backend
 from sl_gt4py.blossey_velocity import init_blossey
 from sl_python.plot import plot_blossey, plot_tracer_against_reference
+from sl_gt4py.driver import sl_driver
+from sl_python.blossey import blossey_tracer
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
