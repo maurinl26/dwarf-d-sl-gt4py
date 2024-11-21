@@ -6,5 +6,6 @@ __pycache__
 sl_venv
 .pytest_cache
 figures
+TRACER_LAB
 
 index.txt
