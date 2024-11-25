@@ -6,13 +6,13 @@ from config import Config
 from sl_gt4py.copy import copy
 from sl_gt4py.departure_search import dep_search_1d
 from sl_gt4py.gt4py_config import dtype, dtype_int
-from sl_gt4py.interpolation.numba_interpolation import numba_interpolate_cub_2d, numba_interpolate_lin_2d
 from sl_gt4py.interpolation.dace_interpolation import dace_interpolate_lin_2d
 
 logging.getLogger(__name__)
 
 
 # ELARCHE
+# TODO : switch ELARCHE as a lagrangian field
 def lagrangian_search(
     config: Config,
     vx: gtscript.Field[dtype],
@@ -51,7 +51,7 @@ def lagrangian_search(
 
         # Hors stencil
         ####### Interpolation for gtscript.Fields ########
-        
+        # TODO : change interpolation for pure gt4py
         vx_tmp = dace_interpolate_lin_2d(
             vx,
             lx, 
