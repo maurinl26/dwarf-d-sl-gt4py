@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from build import dtype
+from sl_gt4py.build import dtype
 
 import numpy as np
 
