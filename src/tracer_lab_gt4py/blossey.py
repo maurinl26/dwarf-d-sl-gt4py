@@ -1,1 +1,0 @@
-from gt4py.cartesian import gtscript
