@@ -8,3 +8,5 @@ __pycache__
 figures
 
 index.txt
+*.o
+*.mod
