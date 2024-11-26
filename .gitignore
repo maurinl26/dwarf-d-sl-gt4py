@@ -6,6 +6,7 @@ __pycache__
 .venv
 .pytest_cache
 figures
+sandbox
 
 index.txt
 *.o
