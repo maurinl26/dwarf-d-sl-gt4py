@@ -3,6 +3,7 @@ import numpy as np
 import logging
 
 from config import Config
+from tracer_lab_python.boundaries import boundaries
 from tracer_lab_python.filter import filter_driver
 from tracer_lab_python.interpolation import interpolate_lin_2d
 
@@ -16,9 +17,8 @@ def smilag_transport_scheme(
     vx_e: np.ndarray,
     vy_e: np.ndarray,
     tracer: np.ndarray,
-    tracer_e: np.ndarray,
-    interpolation_function: callable,
     nitmp: int,
+    interpolation_function: callable = interpolate_lin_2d,
     filter: bool = False,
 ) -> np.ndarray:
     """Performs tracer advection with 2D semi lagrangian.
@@ -43,31 +43,26 @@ def smilag_transport_scheme(
     #############################################
     ######### Departure point search ############
     #############################################
-    lx_d, ly_d, i_d, j_d = larcina(
+    dep_weight_x, dep_weight_y, dep_idx_x, dep_idx_y = larcina(
         config=config,
         vx_e=vx_e,
         vy_e=vy_e,
         vx=vx,
         vy=vy,
-        interpolation_function=interpolate_lin_2d,
+        elarmes_1d=interpolate_lin_2d,
         nitmp=nitmp,
     )
 
     #############################################
     ######### Interpolation function ############
     #############################################
-    # TODO : move in larcinb
     tracer_e = larcinb(
-        tracer,
-        lx_d,
-        ly_d,
-        i_d,
-        j_d,
-        config.bcx_kind,
-        config.bcy_kind,
-        config.nx,
-        config.ny,
-        interpolation_function
+        tracer=tracer,
+        weight_x=dep_weight_x,
+        weight_y=dep_weight_y,
+        dep_idx_x=dep_idx_x,
+        dep_idx_y=dep_idx_y,
+        config=config
     )
 
     ##############################################
@@ -76,7 +71,7 @@ def smilag_transport_scheme(
     # TODO : check filter performances
     if config.filter:
         tracer_e = filter_driver(
-            tracer, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
+            tracer, tracer_e, dep_idx_x, dep_idx_y, config.bcx_kind, config.bcy_kind, config.nx, config.ny
         )
   
     return tracer_e
@@ -127,9 +122,9 @@ def larcina(
         trajy = elarche_1d(vy_e, vy_tmp, dy, dth)
         
         ##### ELASCAW
-        lx, ix = elascaw_1d(trajx, i_arr)
-        ly, jy = elascaw_1d(trajy, j_arr)
-        
+        ix, lx = elascaw_1d(trajx, i_arr)
+        jy, ly = elascaw_1d(trajy, j_arr)
+                
         ##### ELARMES        
         vx_tmp = elarmes_1d(
             vx, lx, ly, ix, jy, bcx_kind, bcy_kind, nx, ny
@@ -143,7 +138,6 @@ def larcina(
 def elarche_1d(
     vhat_arr: np.ndarray,
     vhat_dep: np.ndarray,
-    traj: np.ndarray,
     dth: np.float64,
     dx: np.float64
 ) -> np.ndarray:
@@ -198,11 +192,7 @@ def larcinb(
     weight_y: np.ndarray,
     dep_idx_x: np.ndarray,
     dep_idx_y: np.ndarray,
-    bcx_kind,
-    bcy_kind,
-    nx, 
-    ny,
-    interpolation_function: callable
+    config: Config,
 ) -> np.ndarray:
     """Perform interpolation of a tracer field at departure points.
     
@@ -223,16 +213,19 @@ def larcinb(
         np.ndarray: _description_
     """
     
-    tracer_e = interpolation_function(
-        tracer,
-        weight_x,
-        weight_y,
-        dep_idx_x,
-        dep_idx_y,
-        bcx_kind,
-        bcy_kind,
-        nx,
-        ny,
+    bcx_kind, bcy_kind = config.bcx_kind, config.bcy_kind
+    nx, ny = config.nx, config.ny
+    
+    tracer_e = interpolate_lin_2d(
+        psi=tracer,
+        lx=weight_x,
+        ly=weight_y,
+        i_d=dep_idx_x,
+        j_d=dep_idx_y,
+        bcx_kind=bcx_kind,
+        bcy_kind=bcy_kind,
+        nx=nx,
+        ny=ny
     )
     
     return tracer_e

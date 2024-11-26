@@ -1,6 +1,7 @@
 import logging
 import numpy as np
 
+from config import Config
 from tracer_lab_python.interpolation import max_interpolator_2d, min_interpolator_2d
 from tracer_lab_python.periodic_filters import periodic_overshoot_filter, periodic_undershoot_filter
 
@@ -8,12 +9,10 @@ logging.getLogger(__name__)
 
 def filter_driver(
     tracer: np.ndarray,
+    tracer_e: np.ndarray,
     dep_idx_x: np.ndarray,
     dep_idx_y: np.ndarray,
-    bcx_kind: int,
-    bcy_kind: int,
-    nx: int,
-    ny: int
+    config: Config,
 ) -> np.ndarray:
     """Performs undershoot and overshoot filters.
 
@@ -26,6 +25,9 @@ def filter_driver(
         nx (int): number of steps
         ny (int): number of steps
     """
+    
+    bcx_kind, bcy_kind = config.bcx_kind, config.bcy_kind
+    nx, ny = config.nx, config.ny
     
     tracer_sup = max_interpolator_2d(
         tracer, dep_idx_x, dep_idx_y, bcx_kind, bcy_kind, nx, ny

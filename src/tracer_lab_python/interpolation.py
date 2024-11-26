@@ -1,6 +1,6 @@
 import numpy as np
 
-from sl_python.boundaries import boundaries
+from tracer_lab_python.boundaries import boundaries
 
 def interpolate_lin_2d(
     psi: np.ndarray,
@@ -35,9 +35,13 @@ def interpolate_lin_2d(
     py = np.array([p0(ly), p1(ly)])
 
     # 1. Construire les tableaux d'indices i_d0, i_d1 / j_d0, j_d1
+    print(i_d)
+    
     # Non periodique
     id_0 = boundaries(i_d, nx, bcx_kind)
     id_p1 = boundaries(i_d + 1, nx, bcx_kind)
+    
+    print(id_0)
     
     jd_0 = boundaries(j_d, ny, bcy_kind)
     jd_p1 = boundaries(j_d + 1, ny, bcy_kind)

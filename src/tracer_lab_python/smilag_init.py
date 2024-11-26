@@ -1,14 +1,12 @@
 import numpy as np
-from typing import Tuple
+from typing import Optional, Tuple
 
-def sl_init(
-    vx_e: np.ndarray,
-    vy_e: np.ndarray,
+def slag_init(
     vx: np.ndarray,
     vy: np.ndarray,
-    vx_p: np.ndarray,
-    vy_p: np.ndarray,
-    lsettls: bool = True,
+    vx_p: Optional[np.ndarray] = None,
+    vy_p: Optional[np.ndarray] = None,
+    lsettls: bool = False,
 ) -> Tuple[np.ndarray]:
     """Initialize draft velocities with either
     LSETTLS method : 2 fields for velocity (at t and t - dt)
@@ -39,4 +37,4 @@ def sl_init(
         vx_e = vx.copy()
         vy_e = vy.copy()
 
-    return vx, vy, vx_e, vy_e
+    return vx_e, vy_e
