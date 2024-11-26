@@ -3,17 +3,8 @@ import numpy as np
 import logging
 
 from config import Config
-from tracer_lab_python.diagnostics import diagnostic_lipschitz
-from tracer_lab_python.filter import overshoot_filter, undershoot_filter
-from tracer_lab_python.interpolation import (
-    interpolate_lin_2d,
-    max_interpolator_2d,
-    min_interpolator_2d,
-)
-from tracer_lab_python.periodic_filters import (
-    periodic_overshoot_filter,
-    periodic_undershoot_filter,
-)
+from tracer_lab_python.filter import filter_driver
+from tracer_lab_python.interpolation import interpolate_lin_2d
 
 logging.getLogger(__name__)
 
@@ -52,7 +43,6 @@ def smilag_transport_scheme(
     #############################################
     ######### Departure point search ############
     #############################################
-    # TODO : move in larcina
     lx_d, ly_d, i_d, j_d = larcina(
         config=config,
         vx_e=vx_e,
@@ -85,26 +75,10 @@ def smilag_transport_scheme(
     ##############################################
     # TODO : check filter performances
     if config.filter:
-        tracer_sup = max_interpolator_2d(
-        tracer, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
+        tracer_e = filter_driver(
+            tracer, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
         )
-
-        tracer_inf = min_interpolator_2d(
-        tracer, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
-        )
-
-        if config.bcx_kind == 1 and config.bcy_kind == 1:
-            tracer_e = periodic_overshoot_filter(
-                tracer_e, tracer_sup, config.nx, config.ny
-            )
-            tracer_e = periodic_undershoot_filter(
-                tracer_e, tracer_inf, config.nx, config.ny
-            )
-
-        if config.bcx_kind == 0 and config.bcy_kind == 0:
-            tracer_e = overshoot_filter(tracer_e, tracer_sup, config.nx, config.ny)
-            tracer_e = undershoot_filter(tracer_e, tracer_inf, config.nx, config.ny)
-
+  
     return tracer_e
 
 
