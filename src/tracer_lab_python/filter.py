@@ -1,7 +1,53 @@
 import logging
 import numpy as np
 
+from tracer_lab_python.interpolation import max_interpolator_2d, min_interpolator_2d
+from tracer_lab_python.periodic_filters import periodic_overshoot_filter, periodic_undershoot_filter
+
 logging.getLogger(__name__)
+
+def filter_driver(
+    tracer: np.ndarray,
+    dep_idx_x: np.ndarray,
+    dep_idx_y: np.ndarray,
+    bcx_kind: int,
+    bcy_kind: int,
+    nx: int,
+    ny: int
+) -> np.ndarray:
+    """Performs undershoot and overshoot filters.
+
+    Args:
+        tracer (np.ndarray): tracer field 
+        dep_idx_x (np.ndarray): index of departure point
+        dep_idx_y (np.ndarray): index of depature point
+        bcx_kind (int): boundary kind
+        bcy_kind (int): boundary kind
+        nx (int): number of steps
+        ny (int): number of steps
+    """
+    
+    tracer_sup = max_interpolator_2d(
+        tracer, dep_idx_x, dep_idx_y, bcx_kind, bcy_kind, nx, ny
+        )
+
+    tracer_inf = min_interpolator_2d(
+        tracer, dep_idx_x, dep_idx_y, bcx_kind, bcy_kind, nx, ny
+        )
+
+    if bcx_kind == 1 and bcy_kind == 1:
+        tracer_e = periodic_overshoot_filter(
+                tracer_e, tracer_sup, nx, ny
+            )
+        tracer_e = periodic_undershoot_filter(
+                tracer_e, tracer_inf, nx, ny
+            )
+
+    if bcx_kind == 0 and bcy_kind == 0:
+        tracer_e = overshoot_filter(tracer_e, tracer_sup, nx, ny)
+        tracer_e = undershoot_filter(tracer_e, tracer_inf, nx, ny)
+        
+    return tracer_e
 
 
 def overshoot_filter(
