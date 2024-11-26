@@ -67,7 +67,7 @@ def smilag_transport_scheme(
     ######### Interpolation function ############
     #############################################
     # TODO : move in larcinb
-    tracer_e = interpolation_function(
+    tracer_e = larcinb(
         tracer,
         lx_d,
         ly_d,
@@ -77,6 +77,7 @@ def smilag_transport_scheme(
         config.bcy_kind,
         config.nx,
         config.ny,
+        interpolation_function
     )
 
     ##############################################
@@ -172,6 +173,23 @@ def elarche_1d(
     dth: np.float64,
     dx: np.float64
 ) -> np.ndarray:
+    """Computes the trajectory from departure point to
+    arrival point.
+    
+    The trajectory is basically the CFL field.
+
+    Args:
+        vhat_arr (np.ndarray): arrival point
+        vhat_dep (np.ndarray): departure point
+        traj (np.ndarray): trajectory
+        dth (np.float64): half time step
+        dx (np.float64): spacing
+
+    Returns:
+        np.ndarray: _description_
+    """
+    
+    
     # Deplacement
     traj = -dth * (vhat_arr + vhat_dep) / dx
     return traj
@@ -180,79 +198,68 @@ def elascaw_1d(
     traj: np.ndarray,
     i_arr: np.ndarray,
 ) -> Tuple[np.ndarray]:
+    """Returns departure index, and spatial weight given
+    a trajectory and a arrival part.
+    
+    The departure index is the arrival index minus the floor part
+    of the trajectory (CFL).
+    
+    The weight is the decimal part of the CFL.
+    
+    Args:
+        traj (np.ndarray): traject
+        i_arr (np.ndarray): arrival point
+
+    Returns:
+        Tuple[np.ndarray]: index and weight of departure point
+    """
     
     ix = (i_arr + np.floor(traj)).astype(int)
     lx = traj - np.floor(traj)
     return ix, lx
 
-
-def sl_init(
-    vx_e: np.ndarray,
-    vy_e: np.ndarray,
-    vx: np.ndarray,
-    vy: np.ndarray,
-    vx_p: np.ndarray,
-    vy_p: np.ndarray,
-    lsettls: bool = True,
-) -> Tuple[np.ndarray]:
-    """Initialize draft velocities with either
-    LSETTLS method : 2 fields for velocity (at t and t - dt)
-    LNESN (not LSETTLS) method : 1 field for velocity (at t)
-
-    Args:
-        vx_e (np.ndarray): outlined velocity at t + dt on x
-        vy_e (np.ndarray): outlined velocity at t + dt on y
-        vx (np.ndarray): velocity at t on x
-        vy (np.ndarray): velocity at t on y
-        vx_p (np.ndarray): velocity at t - dt on x
-        vy_p (np.ndarray): velcoity at t - dt on y
-        lsettls (bool, optional): LSETTLS or LNESC. Defaults to True.
-
-    Returns:
-        Tuple[np.ndarray]: velocities at t and t + dt
-    """
-    # LSETTLS
-    if lsettls:
-        vx_e = vx.copy()
-        vy_e = vy.copy()
-
-        vx = 2 * vx - vx_p
-        vy = 2 * vy - vy_p
-
-    # LNESC
-    else:
-        vx_e = vx.copy()
-        vy_e = vy.copy()
-
-    return vx, vy, vx_e, vy_e
-
-
-def backup(
-    vx: np.ndarray,
-    vy: np.ndarray,
-    vx_e: np.ndarray,
-    vy_e: np.ndarray,
+def larcinb(
     tracer: np.ndarray,
-    tracer_e: np.ndarray,
-) -> Tuple[np.ndarray]:
-    """Copy fields for next iteration.
-    Ex : vx_e becomes vx at next model time step
+    weight_x: np.ndarray,
+    weight_y: np.ndarray,
+    dep_idx_x: np.ndarray,
+    dep_idx_y: np.ndarray,
+    bcx_kind,
+    bcy_kind,
+    nx, 
+    ny,
+    interpolation_function: callable
+) -> np.ndarray:
+    """Perform interpolation of a tracer field at departure points.
+    
 
     Args:
-        vx (np.ndarray): x velocity
-        vy (np.ndarray): y velocity
-        vx_e (np.ndarray): ebauche vx
-        vy_e (np.ndarray): ebauche vy
-        tracer (np.ndarray): tracer field
-        tracer_e (np.ndarray): ebauche at t + dt for tracer field
+        tracer (np.ndarray): tracer field to interpolate
+        weight_x (np.ndarray): _description_
+        weight_y (np.ndarray): _description_
+        dep_idx_x (np.ndarray): index of departure point (on grid)
+        dep_idx_y (np.ndarray): index of departure point (on grid)
+        bcx_kind (_type_): _description_
+        bcy_kind (_type_): _description_
+        nx (_type_): _description_
+        ny (_type_): _description_
+        interpolation_function (callable): interpolation methode
 
     Returns:
-        Tuple[np.ndarray]: copy for fields
+        np.ndarray: _description_
     """
+    
+    tracer_e = interpolation_function(
+        tracer,
+        weight_x,
+        weight_y,
+        dep_idx_x,
+        dep_idx_y,
+        bcx_kind,
+        bcy_kind,
+        nx,
+        ny,
+    )
+    
+    return tracer_e
 
-    # Copie des champs
-    tracer = tracer_e.copy()
-    vx = vx_e.copy()
-    vy = vy_e.copy()
-
-    return vx, vy, tracer
