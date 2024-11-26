@@ -1,0 +1,45 @@
+!# LISTE PARAMETRES MODELE 
+!######### PARAMETRES FIXES ##########!
+!# NLEV=65                           #!
+!# NXPT=1000                         #!
+!#####################################!
+
+&NAMDIM
+  NTIMESTEP=400
+  RDT=25.d0
+  RDX=1000.d0
+  RDZ=500.d0
+  NSITER=1
+  NSLTER=3
+  NVERINT=1
+  LSLAG=.TRUE.
+  LSETTLS=.FALSE.
+  LADV_SPLIT=.FALSE.
+  LADV_PIS2D=.TRUE.
+  LFCT_MONO=.FALSE.
+  LTRAJH_INT=.FALSE.
+/
+&NAMPHY
+  NCASE=1
+  C_OROTYP="M"
+  RHMAX=0.d0
+  RU00=10.d0
+  RTPP=1.d0 
+  RQPP=1.d0 
+  LN000=.FALSE.
+  LN001=.FALSE.
+  LN002=.TRUE.
+  LPSTA=.FALSE.
+/
+&NAMDYN
+  C_ADVECT="N"
+  C_OPTION="Z"
+  LPERIO=.FALSE.
+  LALIAZ=.FALSE.
+  RDELTR=1.d0
+/
+&NAMVIEW
+  NFREQOUTPUT=-50
+  LPRINTLEV=.TRUE.
+/
+
