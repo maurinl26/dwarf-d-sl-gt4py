@@ -3,14 +3,14 @@ import numpy as np
 import logging
 
 from config import Config
-from sl_python.diagnostics import diagnostic_lipschitz
-from sl_python.filter import overshoot_filter, undershoot_filter
-from sl_python.interpolation import (
+from tracer_lab_python.diagnostics import diagnostic_lipschitz
+from tracer_lab_python.filter import overshoot_filter, undershoot_filter
+from tracer_lab_python.interpolation import (
     interpolate_lin_2d,
     max_interpolator_2d,
     min_interpolator_2d,
 )
-from sl_python.periodic_filters import (
+from tracer_lab_python.periodic_filters import (
     periodic_overshoot_filter,
     periodic_undershoot_filter,
 )
@@ -18,7 +18,7 @@ from sl_python.periodic_filters import (
 logging.getLogger(__name__)
 
 
-def sl_xy(
+def smilag_transport_scheme(
     config: Config,
     vx: np.ndarray,
     vy: np.ndarray,
@@ -31,9 +31,9 @@ def sl_xy(
     filter: bool = False,
 ) -> np.ndarray:
     """Performs tracer advection with 2D semi lagrangian.
-    1: search for departure point
-    2: interpolate tracer field
-
+    1: search for departure point -> larcina
+    2: interpolation -> larcinb
+    
     Args:
         config (Config): grid configuration
         vx (np.ndarray): velocity on x
@@ -49,8 +49,11 @@ def sl_xy(
         np.ndarray: tracer outline (ebauche) at t + dt
     """
 
-    # Recherche semi lag
-    lx_d, ly_d, i_d, j_d = lagrangian_search(
+    #############################################
+    ######### Departure point search ############
+    #############################################
+    # TODO : move in larcina
+    lx_d, ly_d, i_d, j_d = larcina(
         config=config,
         vx_e=vx_e,
         vy_e=vy_e,
@@ -60,7 +63,10 @@ def sl_xy(
         nitmp=nitmp,
     )
 
-    # Interpolate
+    #############################################
+    ######### Interpolation function ############
+    #############################################
+    # TODO : move in larcinb
     tracer_e = interpolation_function(
         tracer,
         lx_d,
@@ -73,16 +79,19 @@ def sl_xy(
         config.ny,
     )
 
-    # Max et min locaux pour filtage
-    tracer_sup = max_interpolator_2d(
-        tracer, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
-    )
-
-    tracer_inf = min_interpolator_2d(
-        tracer, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
-    )
-
+    ##############################################
+    ########## Overshoot filtering ###############
+    ##############################################
+    # TODO : check filter performances
     if config.filter:
+        tracer_sup = max_interpolator_2d(
+        tracer, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
+        )
+
+        tracer_inf = min_interpolator_2d(
+        tracer, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
+        )
+
         if config.bcx_kind == 1 and config.bcy_kind == 1:
             tracer_e = periodic_overshoot_filter(
                 tracer_e, tracer_sup, config.nx, config.ny
@@ -98,42 +107,13 @@ def sl_xy(
     return tracer_e
 
 
-
-
-def dep_search_1d(
-    i: np.ndarray, vx_e: np.ndarray, vx_tmp: np.ndarray, dx: np.ndarray, dth: float
-) -> Tuple[np.ndarray]:
-    """Compute departure point coordinate (1d)
-
-    Args:
-        I (np.ndarray): _description_
-        vx_e (np.ndarray): velocity at arrival point (t + dt)
-        vx_tmp (np.ndarray): estimate of velocity at departure point
-        dx (np.ndarray): grid spacing
-        dth (float): half model time step
-
-    Returns:
-        Tuple[np.ndarray]:
-            i_d: indice of departure point on grid
-            lx: adimensionned spacing of departure point from ref grid point
-    """
-
-    # Deplacement
-    trajx = -dth * (vx_e + vx_tmp) / dx  # dth = dt / 2
-    i_d = (i + np.floor(trajx)).astype(int)
-    lx = trajx - np.floor(trajx)
-
-    return lx, i_d
-
-
-# ELARCHE
-def lagrangian_search(
+def larcina(
     config: Config,
     vx: np.ndarray,
     vy: np.ndarray,
     vx_e: np.ndarray,
     vy_e: np.ndarray,
-    interpolation_function: callable,
+    elarmes_1d: callable,
     nitmp: int = 4,
 ) -> Tuple[np.ndarray]:
     """Research departure point for a given grid and velocity field.
@@ -150,26 +130,60 @@ def lagrangian_search(
 
     vx_tmp = vx.copy()
     vy_tmp = vy.copy()
-
+    
+    # Spacings and time step
+    dx, dy = config.dx, config.dy
+    dth = config.dth
+    
+    # Indexes of arrival points
+    i_arr, j_arr = config.I, config.J
+    
+    # Borders 
+    bcx_kind, bcy_kind = config.bcx_kind, config.bcy_kind
+    
+    # Spacings
+    nx, ny = config.nx, config.ny
+    
     # Array declaration
     for l in range(nitmp):
-        lx, i_d = dep_search_1d(config.I, vx_e, vx_tmp, config.dx, config.dth)
-        ly, j_d = dep_search_1d(config.J, vy_e, vy_tmp, config.dy, config.dth)
-
-        lipschitz = diagnostic_lipschitz(
-            vx_tmp, vy_tmp, config.dx, config.dy, config.dth
+        
+        ##### ELARCHE
+        trajx = elarche_1d(vx_e, vx_tmp, dx, dth)
+        trajy = elarche_1d(vy_e, vy_tmp, dy, dth)
+        
+        ##### ELASCAW
+        lx, ix = elascaw_1d(trajx, i_arr)
+        ly, jy = elascaw_1d(trajy, j_arr)
+        
+        ##### ELARMES        
+        vx_tmp = elarmes_1d(
+            vx, lx, ly, ix, jy, bcx_kind, bcy_kind, nx, ny
+        )
+        vy_tmp = elarmes_1d(
+            vy, lx, ly, ix, jy, bcx_kind, bcy_kind, nx, ny
         )
 
-        ####### Interpolation for fields ########
-        vx_tmp = interpolation_function(
-            vx, lx, ly, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
-        )
+    return lx, ly, ix, jy
 
-        vy_tmp = interpolation_function(
-            vy, lx, ly, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
-        )
+def elarche_1d(
+    vhat_arr: np.ndarray,
+    vhat_dep: np.ndarray,
+    traj: np.ndarray,
+    dth: np.float64,
+    dx: np.float64
+) -> np.ndarray:
+    # Deplacement
+    traj = -dth * (vhat_arr + vhat_dep) / dx
+    return traj
 
-    return lx, ly, i_d, j_d
+def elascaw_1d(
+    traj: np.ndarray,
+    i_arr: np.ndarray,
+) -> Tuple[np.ndarray]:
+    
+    ix = (i_arr + np.floor(traj)).astype(int)
+    lx = traj - np.floor(traj)
+    return ix, lx
 
 
 def sl_init(
