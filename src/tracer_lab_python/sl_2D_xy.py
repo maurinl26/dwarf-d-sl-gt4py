@@ -18,6 +18,88 @@ from sl_python.periodic_filters import (
 logging.getLogger(__name__)
 
 
+def sl_xy(
+    config: Config,
+    vx: np.ndarray,
+    vy: np.ndarray,
+    vx_e: np.ndarray,
+    vy_e: np.ndarray,
+    tracer: np.ndarray,
+    tracer_e: np.ndarray,
+    interpolation_function: callable,
+    nitmp: int,
+    filter: bool = False,
+) -> np.ndarray:
+    """Performs tracer advection with 2D semi lagrangian.
+    1: search for departure point
+    2: interpolate tracer field
+
+    Args:
+        config (Config): grid configuration
+        vx (np.ndarray): velocity on x
+        vy (np.ndarray): velocity on y
+        vx_e (np.ndarray): velocity on x at t + dt
+        vy_e (np.ndarray): velocity on y at t + dt
+        tracer (np.ndarray): tracer field
+        tracer_e (np.ndarray): tracer at t + dt (ebauche)
+        interpolation_function (callable): linear or cubic interpolation
+        nitmp (int): number of iterations for departure search
+
+    Returns:
+        np.ndarray: tracer outline (ebauche) at t + dt
+    """
+
+    # Recherche semi lag
+    lx_d, ly_d, i_d, j_d = lagrangian_search(
+        config=config,
+        vx_e=vx_e,
+        vy_e=vy_e,
+        vx=vx,
+        vy=vy,
+        interpolation_function=interpolate_lin_2d,
+        nitmp=nitmp,
+    )
+
+    # Interpolate
+    tracer_e = interpolation_function(
+        tracer,
+        lx_d,
+        ly_d,
+        i_d,
+        j_d,
+        config.bcx_kind,
+        config.bcy_kind,
+        config.nx,
+        config.ny,
+    )
+
+    # Max et min locaux pour filtage
+    tracer_sup = max_interpolator_2d(
+        tracer, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
+    )
+
+    tracer_inf = min_interpolator_2d(
+        tracer, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
+    )
+
+    if config.filter:
+        if config.bcx_kind == 1 and config.bcy_kind == 1:
+            tracer_e = periodic_overshoot_filter(
+                tracer_e, tracer_sup, config.nx, config.ny
+            )
+            tracer_e = periodic_undershoot_filter(
+                tracer_e, tracer_inf, config.nx, config.ny
+            )
+
+        if config.bcx_kind == 0 and config.bcy_kind == 0:
+            tracer_e = overshoot_filter(tracer_e, tracer_sup, config.nx, config.ny)
+            tracer_e = undershoot_filter(tracer_e, tracer_inf, config.nx, config.ny)
+
+    return tracer_e
+
+
+
+
 def dep_search_1d(
     i: np.ndarray, vx_e: np.ndarray, vx_tmp: np.ndarray, dx: np.ndarray, dth: float
 ) -> Tuple[np.ndarray]:
@@ -129,86 +211,6 @@ def sl_init(
         vy_e = vy.copy()
 
     return vx, vy, vx_e, vy_e
-
-
-def sl_xy(
-    config: Config,
-    vx: np.ndarray,
-    vy: np.ndarray,
-    vx_e: np.ndarray,
-    vy_e: np.ndarray,
-    tracer: np.ndarray,
-    tracer_e: np.ndarray,
-    interpolation_function: callable,
-    nitmp: int,
-    filter: bool = False,
-) -> np.ndarray:
-    """Performs tracer advection with 2D semi lagrangian.
-    1: search for departure point
-    2: interpolate tracer field
-
-    Args:
-        config (Config): grid configuration
-        vx (np.ndarray): velocity on x
-        vy (np.ndarray): velocity on y
-        vx_e (np.ndarray): velocity on x at t + dt
-        vy_e (np.ndarray): velocity on y at t + dt
-        tracer (np.ndarray): tracer field
-        tracer_e (np.ndarray): tracer at t + dt (ebauche)
-        interpolation_function (callable): linear or cubic interpolation
-        nitmp (int): number of iterations for departure search
-
-    Returns:
-        np.ndarray: tracer outline (ebauche) at t + dt
-    """
-
-    # Recherche semi lag
-    lx_d, ly_d, i_d, j_d = lagrangian_search(
-        config=config,
-        vx_e=vx_e,
-        vy_e=vy_e,
-        vx=vx,
-        vy=vy,
-        interpolation_function=interpolate_lin_2d,
-        nitmp=nitmp,
-    )
-
-    # Interpolate
-    tracer_e = interpolation_function(
-        tracer,
-        lx_d,
-        ly_d,
-        i_d,
-        j_d,
-        config.bcx_kind,
-        config.bcy_kind,
-        config.nx,
-        config.ny,
-    )
-
-    # Max et min locaux pour filtage
-    tracer_sup = max_interpolator_2d(
-        tracer, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
-    )
-
-    tracer_inf = min_interpolator_2d(
-        tracer, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
-    )
-
-    if config.filter:
-        if config.bcx_kind == 1 and config.bcy_kind == 1:
-            tracer_e = periodic_overshoot_filter(
-                tracer_e, tracer_sup, config.nx, config.ny
-            )
-            tracer_e = periodic_undershoot_filter(
-                tracer_e, tracer_inf, config.nx, config.ny
-            )
-
-        if config.bcx_kind == 0 and config.bcy_kind == 0:
-            tracer_e = overshoot_filter(tracer_e, tracer_sup, config.nx, config.ny)
-            tracer_e = undershoot_filter(tracer_e, tracer_inf, config.nx, config.ny)
-
-    return tracer_e
 
 
 def backup(

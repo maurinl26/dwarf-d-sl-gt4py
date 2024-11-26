@@ -97,13 +97,13 @@ def sl_driver(
         logging.info(f"Maximum courant number : {max(courant_xmax, courant_ymax):.02f}")
         
         if t >= (T / 4) and t < (T / 4) + config.dt:
-            plot_blossey(config.xcr, config.ycr, vx, vy, tracer, f"./figures/blossey/blossey_{t:.03f}.pdf")
+            plot_blossey(config.xcr, config.ycr, vx, vy, tracer, f"./figures/blossey_{t:.03f}.pdf")
 
         if t >= (T / 2) and t < (T / 2) + config.dt:
-            plot_blossey(config.xcr, config.ycr, vx, vy, tracer, f"./figures/blossey/blossey_{t:.03f}.pdf")
+            plot_blossey(config.xcr, config.ycr, vx, vy, tracer, f"./figures/blossey_{t:.03f}.pdf")
 
         if t >= (0.75 * T) and t < (0.75 * T) + config.dt:
-            plot_blossey(config.xcr, config.ycr, vx, vy, tracer, f"./figures/blossey/blossey_{t:.03f}.pdf")
+            plot_blossey(config.xcr, config.ycr, vx, vy, tracer, f"./figures/blossey_{t:.03f}.pdf")
 
     e_inf = np.max(np.abs(tracer - tracer_ref))
     e_2 = np.sqrt((1 / (config.nx * config.ny)) * np.sum((tracer - tracer_ref) ** 2))
@@ -114,5 +114,5 @@ def sl_driver(
     logging.info(f"Error E_inf : {e_inf}")
     logging.info(f"Error E_2 : {e_2}")
     
-    plot_blossey(config.xcr, config.ycr, vx, vy, tracer, f"./figures/blossey/blossey_{t:.03f}.pdf")
-    plot_tracer_against_reference(config.xcr, config.ycr, tracer, tracer_ref, e_2, e_inf, f"./figures/blossey/blossey_ref.pdf", cfl_max, config.dx)
+    plot_blossey(config.xcr, config.ycr, vx, vy, tracer, f"./figures/blossey_{t:.03f}.pdf")
+    plot_tracer_against_reference(config.xcr, config.ycr, tracer, tracer_ref, e_2, e_inf, f"./figures/blossey_ref.pdf", cfl_max, config.dx)
