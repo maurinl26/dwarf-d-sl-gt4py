@@ -1,20 +1,19 @@
 from dataclasses import dataclass, field
-from sl_gt4py.build import dtype
 
 import numpy as np
 
 @dataclass
 class Config:
     
-    dt: dtype
-    dth: dtype = field(init=False)
+    dt: np.float64
+    dth: np.float64 = field(init=False)
     
-    xmin: dtype
-    xmax: dtype
+    xmin: np.float64
+    xmax: np.float64
     nx: int
         
-    ymin: dtype
-    ymax: dtype
+    ymin: np.float64
+    ymax: np.float64
     ny: int
     
     nz: int
