@@ -1,5 +1,5 @@
 import logging
-
+import sys
 import numpy as np
 
 from config import Config
@@ -7,9 +7,11 @@ from tracer_lab_python.slag_2D_xy import smilag_transport_scheme
 from tracer_lab_python.smilag_init import slag_init
 from utils.blossey import blossey_tracer, blossey_velocity
 from utils.budget import budget
-from utils.plot import plot_blossey, plot_tracer_against_reference
+from utils.plot import plot_blossey
 
-logging.getLogger(__name__)
+logging.basicConfig(level=logging.INFO, stream=sys.stdout)
+logging.getLogger()
+
 
 def slag_driver(
     config: Config,
@@ -24,51 +26,50 @@ def slag_driver(
     
     t = config.model_starttime
     
-    tracer = blossey_tracer(config.xcr, config.ycr)
-    vx, vy = blossey_velocity(config.xcr, config.ycr, 0, config.dx, config.dy)
+    tracer_dep = blossey_tracer(config.xcr, config.ycr)
+    vx0, vy0 = blossey_velocity(config.xcr, config.ycr, 0, config.dx, config.dy)
+    plot_blossey(config.xcr, config.ycr, vx0, vy0, tracer_dep, f"./figures/tracer_0.pdf")
+
     
     # TODO set initial shape
-    tracer_ref = tracer.copy()
+    tracer_ref = tracer_dep.copy()
     # TODO save initial shape
 
     # Advection
-    vx_e, vy_e = slag_init(
-        vx=vx, vy=vy, lsettls=lsettls
+    vx1, vy1 = slag_init(
+        vx=vx0, vy=vy0, lsettls=lsettls
     )
+    
+    logging.info(f"Config : dt {config.dt}, ntimestep {config.ntimestep} ")
     
     for nstep in range(config.ntimestep):
         
         t += config.dt
-        logging.info(f"Step : {nstep}")
-        logging.info(f"Time : {100*t/(config.model_endtime - config.model_starttime):.02f}%, {t} s")
-        
-        vx, vy, vx_e, vy_e = set_velocity(vx, vx_e, vy, vy_e, config, t)
+        vx1, vy1 = set_velocity(config, t)
 
+        logging.info(f"Step : {nstep}")
+        logging.info(f"Time : {100*t/(config.model_endtime - config.model_starttime):.02f}%, {t:.03f} s")
+    
         # Estimations
-        tracer_e = smilag_transport_scheme(
+        tracer_arr = smilag_transport_scheme(
             config=config,
-            vx=vx,
-            vy=vy,
-            vx_e=vx_e,
-            vy_e=vy_e,
-            tracer=tracer,
+            vx=vx0,
+            vy=vy0,
+            vx_e=vx1,
+            vy_e=vy1,
+            tracer=tracer_dep,
             nitmp=4,
         )
-        
-        # Backup is swapp in fortran
-        tracer = swapp(tracer=tracer, tracer_e=tracer_e)
+ 
+        tracer_dep = swapp(tracer_arr=tracer_arr)
         
         if nstep % config.nfreqoutput == 0:
-            plot_blossey(config.xcr, config.ycr, vx, vy, tracer, f"./figures/tracer_{t:.03f}.pdf")
+            plot_blossey(config.xcr, config.ycr, vx0, vy0, tracer_arr, f"./figures/tracer_{t:.3f}.pdf")
 
-    process_output(config, tracer, tracer_ref, vx, vy, t)
+    process_output(config, tracer_arr, tracer_ref, vx0, vy0, t)
    
 
 def set_velocity(
-    vx: np.ndarray,
-    vx_e: np.ndarray,
-    vy: np.ndarray,
-    vy_e: np.ndarray,
     config: Config,
     t: float,
 ):
@@ -76,9 +77,9 @@ def set_velocity(
 
     Args:
         vx (np.ndarray): _description_
-        vx_e (np.ndarray): _description_
+        vx1 (np.ndarray): _description_
         vy (np.ndarray): _description_
-        vy_e (np.ndarray): _description_
+        vy1 (np.ndarray): _description_
         config (Config): _description_
         t (float): _description_
 
@@ -90,12 +91,13 @@ def set_velocity(
     dx, dy = config.dx, config.dy
     dt = config.dt
     
-    vx, vy = blossey_velocity(xcr, ycr, t, dx, dy)
-    vx_e, vy_e = blossey_velocity(
-            xcr, ycr, t + dt, dx, dy
-        )
+    if config.isetup == "blossey":
     
-    return vx, vy, vx_e, vy_e
+        vx1, vy1 = blossey_velocity(
+            xcr, ycr, t, dx, dy
+            )
+    
+    return vx1, vy1
 
 def process_output(
     config: Config,
@@ -125,9 +127,8 @@ def process_output(
     logging.info(f"Error E_2 : {e_2}")
     
     plot_blossey(config.xcr, config.ycr, vx, vy, tracer, f"./figures/blossey_{t:.03f}.pdf")
-    # plot_tracer_against_reference(config.xcr, config.ycr, tracer, tracer_ref, e_2, e_inf, f"./figures/blossey_ref.pdf", cfl_max, config.dx)
 
-def swapp(tracer, tracer_e):
+def swapp(tracer_arr: np.ndarray):
     """Swapp tracers in memory
 
     Args:
@@ -137,14 +138,14 @@ def swapp(tracer, tracer_e):
     Returns:
         float: _description_
     """
-    tracer = tracer_e.copy()
-    return tracer
+    tracer_dep = tracer_arr.copy()
+    return tracer_dep
 
 
 if __name__ == "__main__":
     
     config = Config(
-        dt=1,
+        dt=0.004,
         xmin=0,
         xmax=1,
         ymin=0,

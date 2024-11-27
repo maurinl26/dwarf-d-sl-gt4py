@@ -7,6 +7,7 @@ def slag_init(
     vx_p: Optional[np.ndarray] = None,
     vy_p: Optional[np.ndarray] = None,
     lsettls: bool = False,
+    lnesc: bool = True
 ) -> Tuple[np.ndarray]:
     """Initialize draft velocities with either
     LSETTLS method : 2 fields for velocity (at t and t - dt)
@@ -26,15 +27,16 @@ def slag_init(
     """
     # LSETTLS
     if lsettls:
-        vx_e = vx.copy()
-        vy_e = vy.copy()
+        vx_f = 2 * vx - vx_p
+        vy_f = 2 * vy - vy_p
+    
+    # LNESC  
+    if lnesc:
+        vx_f = vx
+        vy_f = vy
 
-        vx = 2 * vx - vx_p
-        vy = 2 * vy - vy_p
-
-    # LNESC
     else:
-        vx_e = vx.copy()
-        vy_e = vy.copy()
+        vx_f = vx_e.copy()
+        vy_f = vy_e.copy()
 
-    return vx_e, vy_e
+    return vx_f, vy_f

@@ -3,9 +3,9 @@ import numpy as np
 import logging
 
 from config import Config
-from tracer_lab_python.boundaries import boundaries
 from tracer_lab_python.filter import filter_driver
 from tracer_lab_python.interpolation import interpolate_lin_2d
+from tracer_lab_python.smilag_init import slag_init
 
 logging.getLogger(__name__)
 
@@ -18,8 +18,9 @@ def smilag_transport_scheme(
     vy_e: np.ndarray,
     tracer: np.ndarray,
     nitmp: int,
-    interpolation_function: callable = interpolate_lin_2d,
     filter: bool = False,
+    lsettls: bool = False,
+    lnesc: bool = False
 ) -> np.ndarray:
     """Performs tracer advection with 2D semi lagrangian.
     1: search for departure point -> larcina
@@ -39,14 +40,27 @@ def smilag_transport_scheme(
     Returns:
         np.ndarray: tracer outline (ebauche) at t + dt
     """
-
+    
+    #############################################
+    ######### First guess for v_f  ##############
+    #############################################
+    if not (lnesc or lsettls):
+        vx_f, vy_f = slag_init(
+        vx=vx, vy=vy,
+        )
+    else:
+        # Direct prescription
+        vx_f = vx_e.copy()
+        vy_f = vy_e.copy()
+    
     #############################################
     ######### Departure point search ############
     #############################################
+    logging.info("Calling larcina")
     dep_weight_x, dep_weight_y, dep_idx_x, dep_idx_y = larcina(
         config=config,
-        vx_e=vx_e,
-        vy_e=vy_e,
+        vx_f=vx_f,
+        vy_f=vy_f,
         vx=vx,
         vy=vy,
         elarmes_1d=interpolate_lin_2d,
@@ -56,6 +70,7 @@ def smilag_transport_scheme(
     #############################################
     ######### Interpolation function ############
     #############################################
+    logging.info("Calling larcinb")
     tracer_e = larcinb(
         tracer=tracer,
         weight_x=dep_weight_x,
@@ -68,7 +83,6 @@ def smilag_transport_scheme(
     ##############################################
     ########## Overshoot filtering ###############
     ##############################################
-    # TODO : check filter performances
     if config.filter:
         tracer_e = filter_driver(
             tracer, tracer_e, dep_idx_x, dep_idx_y, config.bcx_kind, config.bcy_kind, config.nx, config.ny
@@ -81,13 +95,15 @@ def larcina(
     config: Config,
     vx: np.ndarray,
     vy: np.ndarray,
-    vx_e: np.ndarray,
-    vy_e: np.ndarray,
+    vx_f: np.ndarray,
+    vy_f: np.ndarray,
     elarmes_1d: callable,
     nitmp: int = 4,
 ) -> Tuple[np.ndarray]:
     """Research departure point for a given grid and velocity field.
     Terminates on nsiter iterations.
+    
+    Note : vx and vy could be in read only (for gt4py)
 
     Args:
         x (np.ndarray): grid of arrival points
@@ -118,22 +134,22 @@ def larcina(
     for l in range(nitmp):
         
         ##### ELARCHE
-        trajx = elarche_1d(vx_e, vx_tmp, dx, dth)
-        trajy = elarche_1d(vy_e, vy_tmp, dy, dth)
+        trajx = elarche_1d(vx_f, vx_tmp, dx, dth)
+        trajy = elarche_1d(vy_f, vy_tmp, dy, dth)
         
         ##### ELASCAW
-        ix, lx = elascaw_1d(trajx, i_arr)
-        jy, ly = elascaw_1d(trajy, j_arr)
+        ix_dep, lx_dep = elascaw_1d(trajx, i_arr)
+        jy_dep, ly_dep = elascaw_1d(trajy, j_arr)
                 
         ##### ELARMES        
         vx_tmp = elarmes_1d(
-            vx, lx, ly, ix, jy, bcx_kind, bcy_kind, nx, ny
+            vx, lx_dep, ly_dep, ix_dep, jy_dep, bcx_kind, bcy_kind, nx, ny
         )
         vy_tmp = elarmes_1d(
-            vy, lx, ly, ix, jy, bcx_kind, bcy_kind, nx, ny
+            vy, lx_dep, ly_dep, ix_dep, jy_dep, bcx_kind, bcy_kind, nx, ny
         )
 
-    return lx, ly, ix, jy
+    return lx_dep, ly_dep, ix_dep, jy_dep
 
 def elarche_1d(
     vhat_arr: np.ndarray,
@@ -193,6 +209,7 @@ def larcinb(
     dep_idx_x: np.ndarray,
     dep_idx_y: np.ndarray,
     config: Config,
+    interpolation_function: callable = interpolate_lin_2d
 ) -> np.ndarray:
     """Perform interpolation of a tracer field at departure points.
     
@@ -216,7 +233,7 @@ def larcinb(
     bcx_kind, bcy_kind = config.bcx_kind, config.bcy_kind
     nx, ny = config.nx, config.ny
     
-    tracer_e = interpolate_lin_2d(
+    tracer_e = interpolation_function(
         psi=tracer,
         lx=weight_x,
         ly=weight_y,
