@@ -1,10 +1,11 @@
-from gt4py.cartesian.gtscript import Field, stencil
-from gt4py_config import backend, backend_opts
+from gt4py.cartesian.gtscript import Field, stencil, function
+from tracer_lab_gt4py.gt4py_config import backend, externals
+import numpy as np
 
 #################################################
 ######### Stencil version #######################
 #################################################
-@stencil(backend=backend, **backend_opts)
+@stencil(backend=backend, externals=externals)
 def boundaries(
     idx_dep: Field[np.int64],
     idy_dep: Field[np.int64],
@@ -17,19 +18,21 @@ def boundaries(
         ny
     )
     
-    # PRESCRIBED BOUNDARIES
-    if __INLINED(bcx_kind == 0):
-        idx_dep = max(0, min(idx_dep, nx))
+    with computation(PARALLEL), interval(...):
+    
+        # PRESCRIBED BOUNDARIES
+        if __INLINED(bcx_kind == 0):
+            idx_dep = max(0, min(idx_dep, nx))
         
-    # PERIODIC BOUNDARIES    
-    if __INLINED(bcx_kind == 1):
-        idx_dep = idx_dep % nx
+        # PERIODIC BOUNDARIES    
+        if __INLINED(bcx_kind == 1):
+            idx_dep = idx_dep % nx
         
         
-    if __INLINED(bcy_kind == 0):
-        idy_dep = max(0, min(idy_dep, ny))
-    if __INLINED(bcy_kind == 1):
-        idy_dep = idy_dep % ny
+        if __INLINED(bcy_kind == 0):
+            idy_dep = max(0, min(idy_dep, ny))
+        if __INLINED(bcy_kind == 1):
+            idy_dep = idy_dep % ny
         
 #########################################
 ####### Function version ################

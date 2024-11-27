@@ -3,16 +3,14 @@ import numpy as np
 import logging
 
 from gt4py.cartesian.gtscript import stencil, Field, function, floor
-from gt4py_config import backend, backend_opts
+from tracer_lab_gt4py.gt4py_config import backend, backend_opts, origin
+from gt4py.storage import from_array, empty
 
-from config import Config
-from tracer_lab_gt4py.interpolation import elarmes_1d_linear
-from tracer_lab_python.boundaries import boundaries
+from utils.config import Config
 from tracer_lab_python.filter import filter_driver
-from tracer_lab_python.interpolation import interpolate_lin_2d
+from dace import program
 
 logging.getLogger(__name__)
-
 
 def smilag_transport_scheme(
     config: Config,
@@ -78,7 +76,7 @@ def smilag_transport_scheme(
     ########## Overshoot filtering ###############
     ##############################################
     # Not in GT4PY
-    if config.filter:
+    if filter:
         tracer_e = filter_driver(
             tracer, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
         )
@@ -88,6 +86,7 @@ def smilag_transport_scheme(
 ##################################################
 ########### LARCINA GT4PY + DaCe #################
 ##################################################
+@program
 def larcina(
     config: Config,
     vx: np.ndarray,
@@ -108,6 +107,7 @@ def larcina(
         np.ndarray: departure point
     """
 
+    # vx should be in reading
     vx_tmp = vx.copy()
     vy_tmp = vy.copy()
     
@@ -122,81 +122,72 @@ def larcina(
     bcx_kind, bcy_kind = config.bcx_kind, config.bcy_kind
     
     # Spacings
-    nx, ny = config.nx, config.ny
+    nx, ny, nz = config.nx, config.ny, config.nz
     
-    ### tmps 
-    # lx, ly
-    # idx_dep, jdy_dep
+    ############################################
+    ######## numpy to gt4py storage ############
+    ############################################
+    # In arrays
+    vx_e_in = from_array(vx_e, np.float64, backend=backend, aligned_index=origin)
+    vy_e_in = from_array(vy_e, np.float64, backend=backend, aligned_index=origin)
+        
+    # Temporary arrays
+    weight_x_dep_out = empty((nx, ny, nz), np.float64, backend=backend, aligned_index=origin)
+    weight_y_dep_out = empty((nx, ny, nz), np.float64, backend=backend, aligned_index=origin)
+    idx_x_dep_out = empty((nx, ny, nz), np.int64, backend=backend, aligned_index=origin)
+    idx_y_dep_out = empty((nx, ny, nz), np.int64, backend=backend, aligned_index=origin)
+    idx_x_arr_in = empty((nx, ny, nz), np.int64, backend=backend, aligned_index=origin)
+    idx_y_arr_in = empty((nx, ny, nz), np.int64, backend=backend, aligned_index=origin)
+    
     
     # Array declaration
     # TODO : in GT4PY + DaCe
     for l in range(nitmp):
         
-        ##### ELARCHE + ELASCAW
+        # Updated fields
+        vx_tmp_in = from_array(vx_tmp, np.float64, backend=backend, aligned_index=origin)
+        vy_tmp_in = from_array(vy_tmp, np.float64, backend=backend, aligned_index=origin)
+        
+        ###################################
+        ##### ELARCHE + ELASCAW GT4Py #####
+        ###################################
         slag_search(
-            weight_x_dep=lx,
-            weight_y_dep=ly,
-            idx_dep=idx_dep,
-            jdy_dep=idy_dep,
-            vx_tmp=vx_tmp,
-            vy_tmp=vy_tmp,
-            vx_e=vx_f,
-            vy_e=vy_f,
-            idx_arr=idx_arr,
-            idx_dep=idx_dep,
+            weight_x_dep=weight_x_dep_out,
+            weight_y_dep=weight_y_dep_out,
+            idx_dep=idx_x_dep_out,
+            jdy_dep=idx_y_dep_out,
+            vx_tmp=vx_tmp_in,
+            vy_tmp=vy_tmp_in,
+            vx_e=vx_e_in,
+            vy_e=vy_e_in,
+            idx_arr=idx_x_arr_in,
+            idy_arr=idx_y_arr_in,
             dx=dx,
             dy=dy,
             dth=dth
         )
         
-        ##### ELARMES
-        elarmes_1d_linear(
-            tracer=vx_tmp, 
-            tracer_e=vx_e,
-            weight_x=weight_x,
-            weight_y=weight_y,
-            idx_dep=idx_dep,
-            idy_dep=idx_dep 
-            ) # for vx
-        elarmes_1d_linear(
-            tracer=vy_tmp, 
-            tracer_e=vy_e,
-            weight_x=weight_x,
-            weight_y=weight_y,
-            idx_dep=idx_dep,
-            idy_dep=idx_dep 
-            ) # for vy 
+        
+        ######################################
+        ########## GT4Py to Numpy ############
+        ######################################
+        lx_dep = np.asarray(weight_x_dep_out)
+        ly_dep = np.asarray(weight_y_dep_out)
+        idx_dep = np.asarray(idx_x_dep_out)
+        idy_dep = np.asarray(idx_y_dep_out)
+        
+        ######################################
+        ############ ELARMES #################
+        ######################################
+        # TODO: elarmes in gt4py
+        vx_tmp = elarmes_1d(
+            vx, lx_dep, ly_dep, idx_dep, idy_dep, bcx_kind, bcy_kind, nx, ny
+        )
+        vy_tmp = elarmes_1d(
+            vy, lx_dep, ly_dep, idx_dep, idy_dep, bcx_kind, bcy_kind, nx, ny
+        )
    
-    return lx, ly, ix, jy
-
-@stencil(backend, **backend_opts)
-def slag_search(
-    weight_x_dep: Field[np.float64], 
-    weight_y_dep: Field[np.float64], 
-    idx_dep: Field[np.int64],
-    idy_dep: Field[np.int64],
-    vx_e: Field[np.float64],
-    vx_tmp: Field[np.float64],
-    vy_e: Field[np.float64],
-    vy_tmp: Field[np.float64],
-    idx_arr: Field[np.int64],
-    idy_arr: Field[np.int64],
-    dx: np.float64,
-    dy: np.float64,
-    dth: np.float64
-):
-    
-    with computation(PARALLEL), interval(...):
-        
-        ##### ELARCHE
-        trajx = elarche_1d(vx_e, vx_tmp, dx, dth)
-        trajy = elarche_1d(vy_e, vy_tmp, dy, dth)
-        
-        ##### ELASCAW
-        weight_x_dep = elascaw_1d_weight(trajx)
-        idx_dep = elascaw_1d_index(trajx, idx_arr)
-        weight_y_dep = elascaw_1d_weight(trajy)
-        idy_dep = elascaw_1d_index(trajy, idy_arr)
+    return lx_dep, ly_dep, idx_dep, idy_dep
 
 @function
 def elarche_1d(
@@ -239,11 +230,104 @@ def elascaw_1d_index(
 ):
     return idx_arr + floor(traj)
 
+@stencil(backend, **backend_opts)
+def slag_search(
+    weight_x_dep: Field[np.float64], 
+    weight_y_dep: Field[np.float64], 
+    idx_dep: Field[np.int64],
+    idy_dep: Field[np.int64],
+    vx_e: Field[np.float64],
+    vx_tmp: Field[np.float64],
+    vy_e: Field[np.float64],
+    vy_tmp: Field[np.float64],
+    idx_arr: Field[np.int64],
+    idy_arr: Field[np.int64],
+    dx: np.float64,
+    dy: np.float64,
+    dth: np.float64
+):
+    
+    with computation(PARALLEL), interval(...):
+        
+        ##### ELARCHE
+        trajx = elarche_1d(vx_e, vx_tmp, dx, dth)
+        trajy = elarche_1d(vy_e, vy_tmp, dy, dth)
+        
+        ##### ELASCAW
+        weight_x_dep = elascaw_1d_weight(trajx)
+        idx_dep = elascaw_1d_index(trajx, idx_arr)
+        weight_y_dep = elascaw_1d_weight(trajy)
+        idy_dep = elascaw_1d_index(trajy, idy_arr)
+
+
+#################################################
+############## ELARMES DaCe #####################
+#################################################
+# TODO : elarmes in DaCe
+def elarmes_1d(
+    psi: np.ndarray,
+    lx: np.ndarray,
+    ly: np.ndarray,
+    i_d: np.ndarray,
+    j_d: np.ndarray,
+    bcx_kind: int,
+    bcy_kind: int,
+    nx: int,
+    ny: int,
+):
+    """Perform a 1d linear interpolation
+
+    Args:
+        lx (np.ndarray): _description_
+        ly (np.ndarray): _description_
+        psi (np.ndarray): _description_
+        i_d (np.ndarray): _description_
+        j_d (np.ndarray): _description_
+        bcx_kind (int): _description_
+        bcy_kind (int): _description_
+        nx (int): _description_
+        ny (int): _description_
+    """
+    # Polynômes de lagrange
+    p0 = lambda l: 1 - l
+    p1 = lambda l: l
+
+    # Interp selon x -> field_hat_x
+    px = np.array([p0(lx), p1(lx)])
+    py = np.array([p0(ly), p1(ly)])
+
+    # 1. Construire les tableaux d'indices i_d0, i_d1 / j_d0, j_d1
+    # Non periodique
+    id_0 = boundaries(i_d, nx, bcx_kind)
+    id_p1 = boundaries(i_d + 1, nx, bcx_kind)
+    
+    jd_0 = boundaries(j_d, ny, bcy_kind)
+    jd_p1 = boundaries(j_d + 1, ny, bcy_kind)
+
+    # Lookup
+    psi_d_i = np.zeros((4, nx, ny))
+    for i in range(nx):
+        for j in range(ny):
+            psi_d_i[0, i, j] = psi[id_0[i, j], jd_0[i, j]]
+            psi_d_i[1, i, j] = psi[id_p1[i, j], jd_0[i, j]]
+
+            psi_d_i[2, i, j] = psi[id_0[i, j], jd_p1[i, j]]
+            psi_d_i[3, i, j] = psi[id_p1[i, j], jd_p1[i, j]]
+
+    psi_d_j = np.zeros((2, nx, ny))
+    psi_d_j[0] = px[0] * psi_d_i[0] + px[1] * psi_d_i[1]
+    psi_d_j[1] = px[0] * psi_d_i[2] + px[1] * psi_d_i[3]
+
+    psi_d = py[0] * psi_d_j[0] + py[1] * psi_d_j[1]
+
+    return psi_d
+    
+    
+
 
 #################################################
 #################### LARCINB ####################
 #################################################
-
 def larcinb(
     tracer: np.ndarray,
     weight_x: np.ndarray,
