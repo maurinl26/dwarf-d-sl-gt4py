@@ -20,9 +20,7 @@ def u(r, t, T):
     )
 
 
-def tracer_shape(x: float, y: float, tracer0: float):
-    r_t = r_tilde(x, y)
-    return np.where(r_t < 1, tracer0 + ((1 + np.cos(np.pi * r_t)) / 2) ** 2, tracer0)
+
 
 
 # Field functions
@@ -97,8 +95,9 @@ def init_blossey(xcr: np.ndarray, ycr: np.ndarray, mt, dt, dx, dy, nx: int, ny: 
     return vx, vy, vx_p, vy_p, vx_e, vy_e
 
 
+def tracer_shape(x: float, y: float, tracer0: np.ndarray) -> np.ndarray:
+    r_t = r_tilde(x, y)
+    return np.where(r_t < 1, tracer0 + ((1 + np.cos(np.pi * r_t)) / 2) ** 2, tracer0)
+
 def blossey_tracer(xcr, ycr):
-    # Tracer
-    tracer = tracer_shape(xcr, ycr, 0)
-    tracer_e = tracer.copy()
-    return tracer, tracer_e
+    return tracer_shape(xcr, ycr, 0)
