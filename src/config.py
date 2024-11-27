@@ -5,32 +5,45 @@ import numpy as np
 @dataclass
 class Config:
     
+    # Timestep
     dt: np.float64
-    dth: np.float64 = field(init=False)
+    ntimestep: float
+    nfreqoutput: float
     
+    # X domain
     xmin: np.float64
     xmax: np.float64
     nx: int
-        
+       
+    # Y domain 
     ymin: np.float64
     ymax: np.float64
     ny: int
     
-    nz: int
-    
+    # Boundary kind
     bcx_kind: int
     bcy_kind: int
     
-    filter: bool
+    # Z domain
+    nz: int = field(default=1)
+    zmin: np.float64 = field(default=0)
+    zmax: np.float64 = field(default=0)
     
-    model_starttime: float 
-    model_endtime: float
+    filter: bool = field(default=False)
+    
+    model_starttime: float = field(default=0)
+    model_endtime: float = field(init=False)
+    
+    isetup: str = field(default="blossey")
     
     def __post_init__(self):
         
         self.dth = self.dt / 2
+        self.model_endtime = self.model_starttime + self.ntimestep * self.dt
+
         self.indices()
         self.coordinates()
+        
                 
     def indices(self):
         
