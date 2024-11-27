@@ -2,7 +2,7 @@ from typing import Tuple
 import numpy as np
 import logging
 
-from config import Config
+from utils.config import Config
 from tracer_lab_python.filter import filter_driver
 from tracer_lab_python.interpolation import interpolate_lin_2d
 from tracer_lab_python.smilag_init import slag_init
@@ -202,6 +202,9 @@ def elascaw_1d(
     lx = traj - np.floor(traj)
     return ix, lx
 
+###############################################
+################### LARCINB ###################
+###############################################
 def larcinb(
     tracer: np.ndarray,
     weight_x: np.ndarray,

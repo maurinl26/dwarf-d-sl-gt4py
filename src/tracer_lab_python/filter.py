@@ -1,7 +1,7 @@
 import logging
 import numpy as np
 
-from config import Config
+from utils.config import Config
 from tracer_lab_python.interpolation import max_interpolator_2d, min_interpolator_2d
 from tracer_lab_python.periodic_filters import periodic_overshoot_filter, periodic_undershoot_filter
 

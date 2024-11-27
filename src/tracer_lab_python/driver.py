@@ -2,7 +2,7 @@ import logging
 import sys
 import numpy as np
 
-from config import Config
+from utils.config import Config
 from tracer_lab_python.slag_2D_xy import smilag_transport_scheme
 from tracer_lab_python.smilag_init import slag_init
 from utils.blossey import blossey_tracer, blossey_velocity
