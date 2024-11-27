@@ -9,9 +9,9 @@ sys.path.append("/home/maurinl/sl_gt4py/src")
 sys.path.append("/home/maurinl/sl_gt5py/tests")
 print(sys.path)
 
-from sl_gt4py.gt4py_config import dtype, dtype_int, backend, origin
-from sl_gt4py.departure_search import dep_search_1d
-from config import Config
+from tracer_lab_gt4py.gt4py_config import dtype, dtype_int, backend, origin
+from sandbox.sl_gt4py.departure_search import dep_search_1d
+from utils.config import Config
 
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)

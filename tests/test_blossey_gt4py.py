@@ -7,12 +7,12 @@ import sys
 import yaml
 from gt4py.storage import zeros
 
-from sl_python.blossey import blossey_tracer, blossey_velocity, init_blossey, tracer_shape
-from sl_gt4py.gt4py_config import dtype, backend, origin
-from sl_python_numba.interpolation import interpolate_cub_2d
-from sl_gt4py.sl_2D import sl_xy, sl_init
-from config import Config
-from sl_python.plot import plot_blossey, plot_tracer_against_reference
+from utils.blossey import blossey_tracer, blossey_velocity, init_blossey, tracer_shape
+from tracer_lab_gt4py.gt4py_config import dtype, backend, origin
+from tracer_lab_numba.interpolation import interpolate_cub_2d
+from sandbox.sl_gt4py.slag_2D_xy import sl_xy, sl_init
+from utils.config import Config
+from utils.plot import plot_blossey, plot_tracer_against_reference
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 

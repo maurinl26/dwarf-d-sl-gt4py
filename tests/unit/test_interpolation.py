@@ -3,8 +3,8 @@ import numpy as np
 
 sys.path.append("/home/maurinl/sl_gt4py/src")
 
-from sl_python.interpolation import interpolate_lin_2d
-from config import Config
+from tracer_lab_python.interpolation import interpolate_lin_2d
+from utils.config import Config
 
 def r_tilde(x: np.ndarray, y: np.ndarray):
     return 5 * np.sqrt((x - 0.5) ** 2 + (y - 0.5) ** 2)

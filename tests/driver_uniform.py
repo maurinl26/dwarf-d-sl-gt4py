@@ -3,13 +3,13 @@ import numpy as np
 import sys
 
 
-from sl_python.plot import plot_blossey
+from utils.plot import plot_blossey
 from test_blossey import backup
 
 
-from sl_python.interpolation import interpolate_lin_2d
-from sl_python.sl_2D import sl_init, sl_xy
-from config import Config
+from tracer_lab_python.interpolation import interpolate_lin_2d
+from tracer_lab_python.slag_2D_xy import sl_init, sl_xy
+from utils.config import Config
 from utils.cfl import cfl_1d
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 

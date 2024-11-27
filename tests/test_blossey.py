@@ -2,18 +2,27 @@ import logging
 import numpy as np
 import sys
 
-from sl_python.blossey import blossey_tracer, blossey_velocity, init_blossey, tracer_shape
+from utils.blossey import blossey_tracer, blossey_velocity, init_blossey, tracer_shape
 from utils.cfl import cfl_1d
-from sl_python.plot import plot_blossey, plot_tracer_against_reference
-from sl_python.interpolation import interpolate_cub_2d
-from sl_python.sl_2D import sl_xy, sl_init
-from config import Config
+from utils.plot import plot_blossey, plot_tracer_against_reference
+from tracer_lab_python.interpolation import interpolate_cub_2d
+from tracer_lab_python.slag_2D_xy import sl_xy, sl_init
+from utils.config import Config
 from utils.cfl import cfl_1d
 
 logging.basicConfig(stream=sys.stdout, level=logging.INFO)
 
 
 def backup(tracer, tracer_e):
+    """Copy tracer field into new field (tracer_e)
+
+    Args:
+        tracer (_type_): _description_
+        tracer_e (_type_): _description_
+
+    Returns:
+        _type_: _description_
+    """
     tracer = tracer_e.copy()
     return tracer
 
