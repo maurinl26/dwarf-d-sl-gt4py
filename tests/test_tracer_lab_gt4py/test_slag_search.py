@@ -53,11 +53,11 @@ if __name__ == "__main__":
 
     weight_x_dep_out = from_array(weight_x_dep, np.float64, backend=backend, aligned_index=origin)
     weight_y_dep_out = from_array(weight_y_dep, np.float64, backend=backend, aligned_index=origin)
-    idx_x_dep_out = from_array(idx_x_dep, np.int32, backend=backend, aligned_index=origin)
-    idx_y_dep_out = from_array(idx_y_dep, np.int32, backend=backend, aligned_index=origin)
+    idx_x_dep_out = from_array(idx_x_dep, np.int64, backend=backend, aligned_index=origin)
+    idx_y_dep_out = from_array(idx_y_dep, np.int64, backend=backend, aligned_index=origin)
     
-    idx_x_arr_in = from_array(idx_x_dep, np.int32, backend=backend, aligned_index=origin)
-    idx_y_arr_in = from_array(idx_y_dep, np.int32, backend=backend, aligned_index=origin)
+    idx_x_arr_in = from_array(idx_x_dep, np.int64, backend=backend, aligned_index=origin)
+    idx_y_arr_in = from_array(idx_y_dep, np.int64, backend=backend, aligned_index=origin)
     
     vx_e_in = from_array(vx_e, np.float64, backend=backend, aligned_index=origin)
     vy_e_in = from_array(vy_e, np.float64, backend=backend, aligned_index=origin)
