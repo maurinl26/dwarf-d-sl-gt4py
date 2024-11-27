@@ -1,9 +1,11 @@
 import logging
 from gt4py.cartesian.gtscript import stencil, Field
 
-from sl_gt4py.gt4py_config import backend, dtype
+from tracer_lab_gt4py.gt4py_config import backend, dtype
 
 logging.getLogger(__name__)
+
+# TODO : filter driver
 
 @stencil(backend=backend)
 def overshoot_filter(

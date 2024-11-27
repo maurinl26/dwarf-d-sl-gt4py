@@ -1,19 +1,19 @@
 import logging
 
-from gt4py.cartesian.gtscript import Field
+from gt4py.cartesian.gtscript import Field, stencil, computation, PARALLEL, interval
 
-from sl_gt4py.gt4py_config import backend, backend_opts, dtype
+from tracer_lab_gt4py.gt4py_config import backend, backend_opts, dtype_float
 
 logging.getLogger(__name__)
 
-@gtscript.stencil(backend=backend, **backend_opts)
+@stencil(backend=backend, **backend_opts)
 def sl_init(
-    vx_e: Field[dtype],
-    vy_e: Field[dtype],
-    vx: Field[dtype],
-    vy: Field[dtype],
-    vx_p: Field[dtype],
-    vy_p: Field[dtype],
+    vx_e: Field[dtype_float],
+    vy_e: Field[dtype_float],
+    vx: Field[dtype_float],
+    vy: Field[dtype_float],
+    vx_p: Field[dtype_float],
+    vy_p: Field[dtype_float],
     lsettls: bool = True,
 ):
     """Initialize draft velocities with either 
@@ -46,6 +46,4 @@ def sl_init(
                 
             vx_e[0, 0, 0] = vx[0, 0, 0]
             vy_e[0, 0, 0] = vy[0, 0, 0]
-                
-                
                 

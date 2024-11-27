@@ -1,12 +1,12 @@
-from gt4py.cartesian import gtscript
+from gt4py.cartesian.gtscript import Field, stencil, computation, PARALLEL, interval
 
-from sl_gt4py.gt4py_config import backend, backend_opts, dtype
+from tracer_lab_gt4py.gt4py_config import backend, backend_opts, dtype_float
 
 
-@gtscript.stencil(backend=backend, **backend_opts)
+@stencil(backend=backend, **backend_opts)
 def backup(
-    tracer: gtscript.Field[dtype],
-    tracer_e: gtscript.Field[dtype],
+    tracer: Field[dtype_float],
+    tracer_e: Field[dtype_float],
 ):
     """Copy fields for next iteration.
     Ex : vx_e becomes vx at next model time step

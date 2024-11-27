@@ -1,17 +1,17 @@
-from gt4py.cartesian.gtscript import stencil, floor, PARALLEL, interval, computation
+from gt4py.cartesian.gtscript import stencil, Field, floor, PARALLEL, interval, computation
 from gt4py.cartesian import gtscript
 
-from sl_gt4py.gt4py_config import backend, backend_opts, dtype, dtype_int
+from tracer_lab_gt4py.gt4py_config import backend, backend_opts, dtype_float, dtype_int
 
 @stencil(backend=backend, **backend_opts)
 def dep_search_1d(
-    grid_indices: gtscript.Field[dtype_int],
-    vx_e: gtscript.Field[dtype],
-    vx_tmp: gtscript.Field[dtype],
-    lx: gtscript.Field[dtype],
-    departure_indices: gtscript.Field[dtype_int],
-    dx: dtype,
-    dth: dtype,
+    grid_indices: Field[dtype_int],
+    vx_e: Field[dtype_float],
+    vx_tmp: Field[dtype_float],
+    lx: Field[dtype_float],
+    departure_indices: Field[dtype_int],
+    dx: dtype_float,
+    dth: dtype_float,
 ):
     """Compute departure point coordinate (1d)
     
