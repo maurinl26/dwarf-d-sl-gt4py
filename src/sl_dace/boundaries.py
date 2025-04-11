@@ -1,9 +1,11 @@
 import numpy as np
+import dace
 
+@dace.program
 def boundaries(
-    indices: int,
-    n: int,
-    bc_kind: int
+    indices: np.ndarray,
+    n: dace.int32,
+    bc_kind: dace.int32
 ) -> np.ndarray:
     """Apply boundary conditions
     1: periodic

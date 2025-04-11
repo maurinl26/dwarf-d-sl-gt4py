@@ -7,6 +7,7 @@ from sl_dace.diagnostics import diagnostic_lipschitz
 from sl_dace.interpolation.interpolation_2d import (
     interpolate_lin_2d,
 )
+from sl_dace.elarche import lagrangian_search
 import dace
 
 logging.getLogger(__name__)
