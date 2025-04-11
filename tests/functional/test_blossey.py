@@ -21,6 +21,7 @@ def backup(tracer, tracer_e):
     return tracer
 
 
+
 # Driver
 def sl_driver(
     config: Config,
@@ -66,7 +67,6 @@ def sl_driver(
             vy_e=vy_e,
             tracer=tracer,
             tracer_e=tracer_e,
-            interpolation_function=interpolate_cub_2d,
             nitmp=4,
         )
 
