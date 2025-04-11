@@ -43,53 +43,6 @@ def dep_search_1d(
 
     return lx, i_d
 
-
-# ELARCHE
-def lagrangian_search(
-    config: Config,
-    vx: np.ndarray,
-    vy: np.ndarray,
-    vx_e: np.ndarray,
-    vy_e: np.ndarray,
-    interpolation_function: callable,
-    nitmp: int = 4,
-) -> Tuple[np.ndarray]:
-    """Research departure point for a given grid and velocity field.
-    Terminates on nsiter iterations.
-
-    Args:
-        x (np.ndarray): grid of arrival points
-        v (np.ndarray): velocity fields
-        nsiter (int, optional): number of iterations. Defaults to 10.
-
-    Returns:
-        np.ndarray: departure point
-    """
-
-    vx_tmp = vx.copy()
-    vy_tmp = vy.copy()
-
-    # Array declaration
-    for l in range(nitmp):
-        lx, i_d = dep_search_1d(config.I, vx_e, vx_tmp, config.dx, config.dth)
-        ly, j_d = dep_search_1d(config.J, vy_e, vy_tmp, config.dy, config.dth)
-
-        lipschitz = diagnostic_lipschitz(
-            vx_tmp, vy_tmp, config.dx, config.dy, config.dth
-        )
-
-        ####### Interpolation for fields ########
-        vx_tmp = interpolation_function(
-            vx, lx, ly, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
-        )
-
-        vy_tmp = interpolation_function(
-            vy, lx, ly, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
-        )
-
-    return lx, ly, i_d, j_d
-
-
 def sl_init(
     vx_e: np.ndarray,
     vy_e: np.ndarray,
@@ -130,6 +83,80 @@ def sl_init(
 
     return vx, vy, vx_e, vy_e
 
+def backup(
+    vx: np.ndarray,
+    vy: np.ndarray,
+    vx_e: np.ndarray,
+    vy_e: np.ndarray,
+    tracer: np.ndarray,
+    tracer_e: np.ndarray,
+) -> Tuple[np.ndarray]:
+    """Copy fields for next iteration.
+    Ex : vx_e becomes vx at next model time step
+
+    Args:
+        vx (np.ndarray): x velocity
+        vy (np.ndarray): y velocity
+        vx_e (np.ndarray): ebauche vx
+        vy_e (np.ndarray): ebauche vy
+        tracer (np.ndarray): tracer field
+        tracer_e (np.ndarray): ebauche at t + dt for tracer field
+
+    Returns:
+        Tuple[np.ndarray]: copy for fields
+    """
+
+    # Copie des champs
+    tracer = tracer_e.copy()
+    vx = vx_e.copy()
+    vy = vy_e.copy()
+
+    return vx, vy, tracer
+
+
+# ELARCHE
+def lagrangian_search(
+    config: Config,
+    vx: np.ndarray,
+    vy: np.ndarray,
+    vx_e: np.ndarray,
+    vy_e: np.ndarray,
+    nitmp: int = 4,
+) -> Tuple[np.ndarray]:
+    """Research departure point for a given grid and velocity field.
+    Terminates on nsiter iterations.
+
+    Args:
+        x (np.ndarray): grid of arrival points
+        v (np.ndarray): velocity fields
+        nsiter (int, optional): number of iterations. Defaults to 10.
+
+    Returns:
+        np.ndarray: departure point
+    """
+
+    vx_tmp = vx.copy()
+    vy_tmp = vy.copy()
+
+    # Array declaration
+    for l in range(nitmp):
+        lx, i_d = dep_search_1d(config.I, vx_e, vx_tmp, config.dx, config.dth)
+        ly, j_d = dep_search_1d(config.J, vy_e, vy_tmp, config.dy, config.dth)
+
+        lipschitz = diagnostic_lipschitz(
+            vx_tmp, vy_tmp, config.dx, config.dy, config.dth
+        )
+
+        ####### Interpolation for fields ########
+        vx_tmp = interpolate_lin_2d(
+            vx, lx, ly, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
+        )
+
+        vy_tmp = interpolate_lin_2d(
+            vy, lx, ly, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
+        )
+
+    return lx, ly, i_d, j_d
 
 def sl_xy(
     config: Config,
@@ -139,9 +166,7 @@ def sl_xy(
     vy_e: np.ndarray,
     tracer: np.ndarray,
     tracer_e: np.ndarray,
-    interpolation_function: callable,
     nitmp: int,
-    filter: bool = False,
 ) -> np.ndarray:
     """Performs tracer advection with 2D semi lagrangian.
     1: search for departure point
@@ -155,7 +180,6 @@ def sl_xy(
         vy_e (np.ndarray): velocity on y at t + dt
         tracer (np.ndarray): tracer field
         tracer_e (np.ndarray): tracer at t + dt (ebauche)
-        interpolation_function (callable): linear or cubic interpolation
         nitmp (int): number of iterations for departure search
 
     Returns:
@@ -169,12 +193,11 @@ def sl_xy(
         vy_e=vy_e,
         vx=vx,
         vy=vy,
-        interpolation_function=interpolate_lin_2d,
         nitmp=nitmp,
     )
 
     # Interpolate
-    tracer_e = interpolation_function(
+    tracer_e = interpolate_lin_2d(
         tracer,
         lx_d,
         ly_d,
@@ -210,33 +233,3 @@ def sl_xy(
 
     return tracer_e
 
-
-def backup(
-    vx: np.ndarray,
-    vy: np.ndarray,
-    vx_e: np.ndarray,
-    vy_e: np.ndarray,
-    tracer: np.ndarray,
-    tracer_e: np.ndarray,
-) -> Tuple[np.ndarray]:
-    """Copy fields for next iteration.
-    Ex : vx_e becomes vx at next model time step
-
-    Args:
-        vx (np.ndarray): x velocity
-        vy (np.ndarray): y velocity
-        vx_e (np.ndarray): ebauche vx
-        vy_e (np.ndarray): ebauche vy
-        tracer (np.ndarray): tracer field
-        tracer_e (np.ndarray): ebauche at t + dt for tracer field
-
-    Returns:
-        Tuple[np.ndarray]: copy for fields
-    """
-
-    # Copie des champs
-    tracer = tracer_e.copy()
-    vx = vx_e.copy()
-    vy = vy_e.copy()
-
-    return vx, vy, tracer
