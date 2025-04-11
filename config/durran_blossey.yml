@@ -12,3 +12,9 @@ ymin: 0
 ymax: 1
 ny: 200
 bcy_kind: 1
+
+nz: 1
+
+filter: False
+
+lsettls: True

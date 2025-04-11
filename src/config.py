@@ -1,20 +1,19 @@
 from dataclasses import dataclass, field
-from build import dtype
 
 import numpy as np
 
 @dataclass
 class Config:
     
-    dt: dtype
-    dth: dtype = field(init=False)
+    dt: float
+    dth: float = field(init=False)
     
-    xmin: dtype
-    xmax: dtype
+    xmin: float
+    xmax: float
     nx: int
         
-    ymin: dtype
-    ymax: dtype
+    ymin: float
+    ymax: float
     ny: int
     
     nz: int
@@ -23,6 +22,7 @@ class Config:
     bcy_kind: int
     
     filter: bool
+    lsettls: bool
     
     model_starttime: float 
     model_endtime: float

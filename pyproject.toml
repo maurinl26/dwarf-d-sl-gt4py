@@ -1,15 +1,18 @@
-[tool.poetry]
-name = "sl-gt4py"
+[project]
+name = "dwarf-d-sl-gt4py"
 version = "0.1.0"
-description = ""
-authors = ["maurinl26 <maurin.loic.ac@gmail.com>"]
+description = "Add your description here"
 readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "gt4py[dace]>=1.0.4",
+    "matplotlib>=3.10.1",
+    "netcdf4>=1.7.2",
+    "pytest>=8.3.5",
+]
 
-[tool.poetry.dependencies]
-python = "^3.12"
-numpy = "^1.26.1"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+[dependency-groups]
+experimental = [
+    "jax>=0.5.3",
+    "numba>=0.61.0",
+]
