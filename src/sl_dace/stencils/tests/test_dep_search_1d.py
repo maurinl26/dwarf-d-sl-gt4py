@@ -4,30 +4,14 @@ import pytest
 import logging
 
 from sl_dace.stencils.dep_search_1d import dep_search_1d
-from typing import Union
-
-@pytest.fixture
-def dtypes(precision: Union["single", "double"] = 'single'):
-    if precision == "single":
-        return {
-            float: np.float32,
-            int: np.int32,
-        }
-    elif precision == "double":
-        return {
-            float: np.float64,
-            int: np.int64,
-        }
-    else:
-        raise KeyError("precision not in 'single' or 'double'")
+from typing import Tuple
 
 
 @pytest.mark.parametrize("backend", ["numpy", "gt:cpu_ifirst", "dace:cpu"] )
-def test_dep_search_1d(backend: str, dtypes: dict):
+def test_dep_search_1d(backend: str, dtypes: dict, inner_domain: Tuple[int], origin: Tuple[int]):
 
     logging.info(f"Backend : {backend}")
-    for key, type in dtypes.items():
-        logging.info(f"{key}, Type : {type}")
+
     stencil_dep_search_1d = stencil(backend=backend,
                                     definition=dep_search_1d,
                                     name="dep_search_1d",
@@ -37,13 +21,16 @@ def test_dep_search_1d(backend: str, dtypes: dict):
                                     rebuild=True,
                                     )
 
+    # Departures
     vx_e = np.ones((50, 50, 10), dtype=dtypes[float])
     vx_tmp = np.ones((50, 50, 10), dtype=dtypes[float])
     i_a = np.ones((50, 50, 10), dtype=dtypes[int])
+
+    # Outputs
     i_d = np.zeros((50, 50, 10), dtype=dtypes[int])
     lx = np.zeros((50, 50, 10), dtype=dtypes[float])
 
-    dx = dtypes[float](0.01)
+    dx = dtypes[float](1)
     dth = dtypes[float](0.5)
 
     stencil_dep_search_1d(
@@ -54,21 +41,12 @@ def test_dep_search_1d(backend: str, dtypes: dict):
         lx=lx,
         dx=dx,
         dth=dth,
+        domain=inner_domain,
+        origin=origin
     )
 
-# Test dace functionalities
-@pytest.mark.parametrize('backend', ['dace:cpu'])
-def test_orchestrate(dtypes: dict, backend: str):
-    
+    print(i_d.mean())
 
-    stencil_dep_search_1d = stencil(backend=backend,
-                                    definition=dep_search_1d,
-                                    name="dep_search_1d",
-                                    dtypes=dtypes,
-                                    build_info={},
-                                    externals={},
-                                    rebuild=True,
-                                    )
-
-    print(stencil_dep_search_1d._sdfg)
+    # one cell left shift
+    assert i_d.mean() == 0
 
