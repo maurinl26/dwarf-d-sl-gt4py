@@ -2,20 +2,58 @@ import pytest
 import numpy as np
 from sl_dace.interpolation.interpolation_2d import interpolate_lin_2d
 import dace
+from sl_dace.dims import I, J, K
+
+
+def simple_interpolation(
+        psi: dace.float32[I, J],
+        psi_int: dace.float32[I, J],
+        i_dep: dace.uint32[I, J]
+    ):
+    for i, j in dace.map[0:I, 0:J]:
+
+            psi[i, j] = psi[i_dep[i, j], j]
+
+
+            # todo : check index resolution
+
+
+def test_simple_interpolation():
+
+    c_simple_interpolation = (
+        dace.program(simple_interpolation)
+        .to_sdfg()
+        .compile()
+    )
+
+    psi = np.ones((10, 10), dtype=np.float32)
+    psi_int = np.ones((10, 10), dtype=np.float32)
+    i_dep = np.ones((10, 10), dtype=np.int32)
+
+    c_simple_interpolation(
+        psi=psi,
+        psi_int=psi_int,
+        i_dep=i_dep,
+        I=10,
+        J=10
+    )
 
 def test_interpolate_lin_2d():
 
-    psi = np.ones((50, 50, 10), dtype=np.float32)
-    lx = np.zeros((50, 50, 10), dtype=np.float32)
-    ly = np.zeros((50, 50, 10), dtype=np.float32)
+    nx = 5
+    ny = 5
+    nz = 1
 
-    i_d = np.ones((50, 50, 10), dtype=np.int32)
-    j_d = np.ones((50, 50, 10), dtype=np.int32)
+    psi = np.ones((nx, ny, nz), dtype=np.float32)
+    lx = np.zeros((nx, ny, nz), dtype=np.float32)
+    ly = np.zeros((nx, ny, nz), dtype=np.float32)
 
-    psi_dep = np.zeros((50, 50, 10), dtype=np.float32)
+    i_d = np.ones((nx, ny, nz), dtype=np.int32)
+    j_d = np.ones((nx, ny, nz), dtype=np.int32)
 
-    nx, ny, nz = (50, 50, 15)
-    h = 5
+    psi_dep = np.zeros((nx, ny, nz), dtype=np.float32)
+
+    h = 0
 
     c_interpolate_lin_2d = (
         dace.program(interpolate_lin_2d)
@@ -36,4 +74,4 @@ def test_interpolate_lin_2d():
             H=h
     )
 
-    assert psi_dep.mean() == 0
+    assert psi_dep.mean() == 1

@@ -26,23 +26,24 @@ def interpolate_lin_2d(
     # Lookup
     for i, j, k in dace.map[0:I, 0:J, 0:K]:
 
-        with dace.tasklet:
+            wx = lx[i, j, k]
+            wy = ly[i, j, k]
 
-            id_lookup << i_dep[i, j, k]
-            jd_lookup << j_dep[i, j, k]
-            wx << lx[i, j, k]
-            wy << ly[i, j, k]
+            lower_left = psi[i_dep[i, j, k], j_dep[i, j, k], k]
+            lower_right = psi[i_dep[i, j, k] + 1, j_dep[i, j, k], k]
+            upper_left = psi[i_dep[i, j, k], j_dep[i, j, k] + 1, k]
+            upper_right = psi[i_dep[i, j, k] + 1, j_dep[i, j, k] + 1, k]
 
-            # 4 points to interpolate
-            lower_left << psi[id_lookup, jd_lookup, k]
-            lower_right << psi[id_lookup + 1, jd_lookup, k]
-            upper_left << psi[id_lookup, jd_lookup + 1, k]
-            upper_right << psi[id_lookup + 1, jd_lookup + 1, k]
+            first_line = (
+                    (1 - wx ) * lower_left
+                    + wx * lower_right
+            )
 
-            interp_value= (1 - wy) * (
-                (1 - wx) * lower_left + wx * lower_right
-        ) + wy * (
-                (1 - wx) * upper_left + wx * upper_right
-        )
-            interp_value = psi_dep[i, j, k]
+            second_line = (
+                    (1 - wx) * upper_left
+                    + wx * upper_right
+            )
+
+            psi_dep[i, j, k] = (1 - wy) * first_line + wy * second_line
+
 

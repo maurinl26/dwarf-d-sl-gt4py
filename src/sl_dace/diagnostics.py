@@ -1,36 +1,38 @@
 import numpy as np
-import matplotlib.pyplot as plt
+import dace
+from gt4py.cartesian.gtscript import stencil
+from typing import Tuple
 
-@dace.program
-def diagnostic_lipschitz(
-        u: np.ndarray,
-        v: np.ndarray,
-        du_dx: np.ndarray,
-        dv_dx: np.ndarray,
-        du_dy: np.ndarray,
-        dv_dy: np.ndarray,
-        dx: float,
-        dy: float,
-        dth: float):
-    """Diagnostic for Semi-Lagrangian Research stability
+from sl_dace.stencils.gradient import c2_x, c2_y
 
-    Args:
-        u (np.ndarray): velocity on x 
-        v (np.ndarray): velocity on y
-        dx (float): spacing on x
-        dy (float): spacing on y
-        dth (float): half time step
 
-    Returns:
-        float: lipschitz condition on stability
-    """
+class LipschitzDiag:
 
-    du_dx = c2_x(u, du_dx, dx, origin=(1, 0, 0))
-    dv_dx = c2_x(v, dv_dx, dx, origin=(1, 0, 0))
+    def __init__(self, grid: Tuple[int]):
 
-    du_dy = c2_y(u, du_dy, dy, origin=(0, 1, 0))
-    dv_dy = c2_y(v, dv_dy, dy, origin=(0, 1, 0))
+        # todo: a grid class which takes
+        self.grid = grid
 
-    
-    return dth * np.max(np.maximum(du_dx, du_dy), np.maximum(dv_dx, dv_dy))
+        self.c2_x = stencil(definition=c2_x, name="c2_x")
+        self.c2_y = stencil(definition=c2_y, name="c2_y")
+
+    def __call__(self,
+                 u,
+                 v,
+                 du_dx,
+                 du_dy,
+                 dv_dx,
+                 dv_dy,
+                 dx,
+                 dy,
+                 dth):
+
+        self.c2_x(u, du_dx, dx, origin=(1, 0, 0), domain=self.grid)
+        self.c2_x(v, dv_dx, dx, origin=(1, 0, 0), domain=self.grid)
+
+        self.c2_y(u, du_dy, dy, origin=(0, 1, 0), domain=self.grid)
+        self.c2_y(v, dv_dy, dy, origin=(0, 1, 0), domain=self.grid)
+
+        # dace.reduce for performances
+        return dth * np.max(np.maximum(du_dx, du_dy), np.maximum(dv_dx, dv_dy))
 
