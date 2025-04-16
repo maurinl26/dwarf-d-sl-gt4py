@@ -1,60 +1,48 @@
 import numpy as np
 import dace
-from sl_dace.boundaries import boundaries
+from sl_dace.dims import I, J, K, H
 
-@dace.program
+# to dace sdfg
 def interpolate_lin_2d(
-    psi: np.ndarray,
-    lx: np.ndarray,
-    ly: np.ndarray,
-    i_d: np.ndarray,
-    j_d: np.ndarray,
-    bcx_kind: dace.int32,
-    bcy_kind: dace.int32,
-    nx: dace.int32,
-    ny: dace.int32,
+    psi: dace.float32[I, J, K],
+    lx: dace.float32[I, J, K],
+    ly: dace.float32[I, J, K],
+    i_dep: dace.int32[I + H, J + H, K],
+    j_dep: dace.int32[I + H, J + H, K],
+    psi_dep: dace.float32[I + H, J + H, K],
 ):
-    """Perform a 1d linear interpolation
+    """Perform a 2d linear interpolation on a regular horizontal plane.
+
+    Note: H stands for the size of the halo (corresponding to max CFL)
 
     Args:
-        lx (np.ndarray): _description_
-        ly (np.ndarray): _description_
-        psi (np.ndarray): _description_
-        i_d (np.ndarray): _description_
-        j_d (np.ndarray): _description_
-        bcx_kind (int): _description_
-        bcy_kind (int): _description_
-        nx (int): _description_
-        ny (int): _description_
+        psi (np.ndarray): field to interpolate
+        lx (np.ndarray): fractional shift from departure point on axis x
+        ly (np.ndarray): fractional shift from departure point on axis y
+        i_dep (np.ndarray): index of departure point on axis x
+        j_dep (np.ndarray): index of departure point on axis y
     """
-    # Lagrange lineaire
-    # Interp selon x -> field_hat_x
-    px = np.array([1 - lx, lx])
-    py = np.array([1 - ly, ly])
-
-    # 1. Construire les tableaux d'indices i_d0, i_d1 / j_d0, j_d1
-    # Non periodique
-    id_0 = boundaries(i_d, nx, bcx_kind)
-    id_p1 = boundaries(i_d + 1, nx, bcx_kind)
-    
-    jd_0 = boundaries(j_d, ny, bcy_kind)
-    jd_p1 = boundaries(j_d + 1, ny, bcy_kind)
 
     # Lookup
-    psi_d_i = np.zeros((4, nx, ny))
-    for i in range(nx):
-        for j in range(ny):
-            psi_d_i[0, i, j] = psi[id_0[i, j], jd_0[i, j]]
-            psi_d_i[1, i, j] = psi[id_p1[i, j], jd_0[i, j]]
+    for i, j, k in dace.map[0:I, 0:J, 0:K]:
 
-            psi_d_i[2, i, j] = psi[id_0[i, j], jd_p1[i, j]]
-            psi_d_i[3, i, j] = psi[id_p1[i, j], jd_p1[i, j]]
+        with dace.tasklet:
 
-    psi_d_j = np.zeros((2, nx, ny))
-    psi_d_j[0] = px[0] * psi_d_i[0] + px[1] * psi_d_i[1]
-    psi_d_j[1] = px[0] * psi_d_i[2] + px[1] * psi_d_i[3]
+            id_lookup << i_dep[i, j, k]
+            jd_lookup << j_dep[i, j, k]
+            wx << lx[i, j, k]
+            wy << ly[i, j, k]
 
-    psi_d = py[0] * psi_d_j[0] + py[1] * psi_d_j[1]
+            # 4 points to interpolate
+            lower_left << psi[id_lookup, jd_lookup, k]
+            lower_right << psi[id_lookup + 1, jd_lookup, k]
+            upper_left << psi[id_lookup, jd_lookup + 1, k]
+            upper_right << psi[id_lookup + 1, jd_lookup + 1, k]
 
-    return psi_d
+            interp_value= (1 - wy) * (
+                (1 - wx) * lower_left + wx * lower_right
+        ) + wy * (
+                (1 - wx) * upper_left + wx * upper_right
+        )
+            interp_value = psi_dep[i, j, k]
 
