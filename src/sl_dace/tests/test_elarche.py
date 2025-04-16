@@ -30,9 +30,7 @@ def test_elarche(grid):
     i_dep = np.ones(shape=grid, dtype=np.int32)
     j_dep = np.zeros(shape=grid, dtype=np.int32)
 
-    elarche = Elarche(grid, nitmp=1)
-
-    elarche(
+    Elarche(grid, nitmp=1)(
         dx=dx,
         dy=dy,
         dth=dth,
