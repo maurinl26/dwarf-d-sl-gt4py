@@ -40,9 +40,9 @@ def test_simple_interpolation():
 
 def test_interpolate_lin_2d():
 
-    nx = 5
-    ny = 5
-    nz = 1
+    nx = 100
+    ny = 100
+    nz = 90
 
     psi = np.ones((nx, ny, nz), dtype=np.float32)
     lx = np.zeros((nx, ny, nz), dtype=np.float32)
@@ -74,4 +74,4 @@ def test_interpolate_lin_2d():
             H=h
     )
 
-    assert psi_dep.mean() == 1
+    assert psi.mean() == 0.0

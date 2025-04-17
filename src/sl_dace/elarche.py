@@ -11,7 +11,7 @@ from sl_dace.dims import I, J, K
 
 class Elarche:
 
-    def __init__(self, grid: Tuple[int], halo: int = 5, nitmp: int = 4):
+    def __init__(self, grid: Tuple[int], halo: int = 0, nitmp: int = 4):
         self.grid = grid
         self.symbol_mapping = {
                 "I": grid[0],
@@ -98,13 +98,23 @@ class Elarche:
 
             # todo: add LipschitzDiag
             ####### Interpolation for fields ########
-            vx_tmp = self.d_interpolate_lin_2d(
-                vx, lx, ly, i_dep, j_dep, idx, jdx,
+            self.d_interpolate_lin_2d(
+                psi_dep=vx,
+                psi=vx_tmp,
+                lx=lx,
+                ly=ly,
+                i_dep=i_dep,
+                j_dep=j_dep,
                 **self.symbol_mapping
             )
 
-            vy_tmp = self.d_interpolate_lin_2d(
-                vy, lx, ly, i_dep, j_dep, idx, jdx,
+            self.d_interpolate_lin_2d(
+                psi_dep=vy,
+                psi=vy_tmp,
+                lx=lx,
+                ly=ly,
+                i_dep=i_dep,
+                j_dep=j_dep,
                 **self.symbol_mapping
             )
 
