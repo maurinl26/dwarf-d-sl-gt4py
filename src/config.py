@@ -1,4 +1,5 @@
 from dataclasses import dataclass, field
+import logging
 
 import numpy as np
 
@@ -26,13 +27,22 @@ class Config:
     
     model_starttime: float 
     model_endtime: float
+    nstep: float = field(init=False)
     
     def __post_init__(self):
         
         self.dth = self.dt / 2
+        self.nstep = np.ceil((self.model_endtime - self.model_starttime) / self.dt)
+
+        logging.info(f"Time step dt : {self.dt:.06f} s")
+        logging.info(f"N steps : {self.nstep:.06f} s")
+
         self.indices()
         self.coordinates()
-                
+
+        self.domain = (self.nx, self.ny, self.nz)
+
+
     def indices(self):
         
         self.i_indices = np.arange(self.nx)

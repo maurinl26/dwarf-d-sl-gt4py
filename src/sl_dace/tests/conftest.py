@@ -28,3 +28,7 @@ def domain_with_halo_fixture(nx: int = 50, ny: int = 50, nz: int = 10):
 @pytest.fixture(name="inner_domain", scope="module")
 def inner_domain_fixture(nx: int = 50, ny: int = 50, nz: int = 10, h: int = 5):
     return nx - 2*h, ny - 2*h, nz
+
+@pytest.fixture(name="large_domain", scope="module")
+def large_domain_fixture(nx: int = 255, ny: int = 255, nz: int = 120):
+    return nx, ny, nz

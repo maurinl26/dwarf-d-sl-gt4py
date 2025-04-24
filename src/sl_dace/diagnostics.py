@@ -34,5 +34,5 @@ class LipschitzDiag:
         self.c2_y(v, dv_dy, dy, origin=(0, 1, 0), domain=self.grid)
 
         # dace.reduce for performances
-        return dth * np.max(np.maximum(du_dx, du_dy), np.maximum(dv_dx, dv_dy))
+        return dth * np.maximum(np.maximum(du_dx, du_dy), np.maximum(dv_dx, dv_dy))
 
