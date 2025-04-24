@@ -17,18 +17,22 @@ class Config:
     ymax: float
     ny: int
     
-    nz: int
-    
+
     bcx_kind: int
     bcy_kind: int
     
-    filter: bool
     lsettls: bool
     
     model_starttime: float 
     model_endtime: float
+
+    nz: int = field(default=1)
+
+    filter: bool = field(default=False)
+
     nstep: float = field(init=False)
-    
+    nitmp: float = field(default=4)
+
     def __post_init__(self):
         
         self.dth = self.dt / 2
