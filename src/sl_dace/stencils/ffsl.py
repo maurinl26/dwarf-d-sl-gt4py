@@ -1,7 +1,9 @@
+from ifs_physics_common.framework.stencil import stencil_collection
 from gt4py.cartesian.gtscript import computation, PARALLEL, interval, Field, IJK, floor
 
 
 # 1. remap velocity
+@stencil_collection("velocity_on_faces_x")
 def velocity_on_faces_x(
         vx: Field[IJK, float],
         vxh: Field[IJK, float],
@@ -23,7 +25,7 @@ def velocity_on_faces_x(
     with computation(PARALLEL), interval(...):
         vxh[0, 0, 0] = 0.5 * (vx[-1, 0, 0] + vx[0, 0, 0])
 
-
+@stencil_collection("velocity_on_faces_y")
 def velocity_on_faces_y(
         vy: Field[IJK, float],
         vyh: Field[IJK, float]
@@ -46,6 +48,7 @@ def velocity_on_faces_y(
 
 
 # 1.5 convert velocity to integer and fractional cfl
+@stencil_collection("split_cfl_x")
 def split_cfl_x(
         vxh: Field[IJK, float],
         cxh_int: Field[IJK, float],
@@ -68,6 +71,8 @@ def split_cfl_x(
         cxh_int = floor(cxh)
         chx_frac = cxh - floor(cxh)
 
+
+@stencil_collection("split_cfl_y")
 def split_cfl_y(
         vyh: Field[IJK, float],
         cyh_int: Field[IJK, int],
@@ -90,6 +95,7 @@ def split_cfl_y(
 
 
 # 2. Interpolate h (advected tracer)
+@stencil_collection("fourth_order_facet_interpolation_x")
 def fourth_order_facet_interpolation_x(
         psihx: Field[IJK, float],
         psi: Field[IJK, float]
@@ -104,6 +110,7 @@ def fourth_order_facet_interpolation_x(
         psihx[0, 0, 0] = (psi[-2, 0, 0] + 7 * psi[-1, 0, 0] + 7 * psi[0, 0, 0] + psi[1, 0, 0]) / 12
 
 
+@stencil_collection("fourth_order_facet_interpolation_y")
 def fourth_order_facet_interpolation_y(
         psihy: Field[IJK, float],
         psi: Field[IJK, float]
@@ -113,6 +120,7 @@ def fourth_order_facet_interpolation_y(
 
 
 # 4. PPM limiter
+@stencil_collection("monotonic_limiter_x")
 def monotonic_limiter_x(
         psihx: Field[IJK, float],
         psi: Field[IJK, float]
@@ -130,6 +138,8 @@ def monotonic_limiter_x(
             max(psihx[0, 0, 0], min(psi[-1, 0, 0], psi[0, 0, 0]))
         )
 
+
+@stencil_collection("monotonic_limiter_y")
 def monotonic_limiter_y(
     psihy: Field[IJK, float],
     psi: Field[IJK, float]
@@ -145,6 +155,7 @@ def monotonic_limiter_y(
 # sum of integer and fractional part also in numpy
 
 # 4.5 sum of fractional and integer flux
+@stencil_collection("integer_and_fractional_flux_sum")
 def integer_and_fractional_flux_sum(
         fhx: Field[IJK, float],
         fhx_int: Field[IJK, float],
@@ -162,6 +173,7 @@ def integer_and_fractional_flux_sum(
 
 
 # 5. density update with updated flux
+@stencil_collection("inner_density_update_x")
 def inner_density_update_x(
         rho: Field[IJK, float],
         rho_ix: Field[IJK, float],
@@ -183,6 +195,7 @@ def inner_density_update_x(
         rho_ix = rho - dt * (fhx[0, 0, 0] * ds_yz - fhx[0, 0, 0] * ds_yz) / dv
 
 
+@stencil_collection("inner_density_update_y")
 def inner_density_update_y(
         rho: Field[IJK, float],
         rho_iy: Field[IJK, float],
@@ -207,12 +220,8 @@ def inner_density_update_y(
 # todo : implement SWIFT outer steps for splitting
 def swift_outer_density_update(
         rho_ay: Field[IJK, float],
+        sigma_x
 ):
     ...
 
-# todo : implement COSMIC outer steps for splitting
-def cosmic_outer_density_update(
-       rho_ay: Field[IJK, float],
-):
-    ...
 

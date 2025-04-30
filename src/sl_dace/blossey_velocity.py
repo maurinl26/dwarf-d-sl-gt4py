@@ -1,5 +1,4 @@
 import numpy as np
-from typing import Tuple
 from gt4py.cartesian.gtscript import stencil
 
 # stencils imported

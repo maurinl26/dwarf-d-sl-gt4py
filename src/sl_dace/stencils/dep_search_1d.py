@@ -1,3 +1,4 @@
+from ifs_physics_common.framework.stencil import stencil_collection
 from gt4py.cartesian.gtscript import (
     stencil,
     Field,
@@ -7,8 +8,8 @@ from gt4py.cartesian.gtscript import (
     PARALLEL,
     interval,
 )
-import numpy as np
 
+@stencil_collection("dep_search_1d")
 def dep_search_1d(
     vx_e: Field[IJK, float],
     vx_tmp: Field[IJK, float],

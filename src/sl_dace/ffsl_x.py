@@ -1,5 +1,7 @@
-from collections.abc import dict_values
 from ifs_physics_common.framework.storage import managed_temporary_storage
+from ifs_physics_common.framework.components import DiagnosticComponent
+from ifs_physics_common.framework.grid import I, J, K, ComputationalGrid
+from ifs_physics_common.framework.stencil import compile_stencil
 from gt4py.cartesian.gtscript import stencil
 from functools import partial, cached_property
 import numpy as np
@@ -18,7 +20,6 @@ from sl_dace.interpolation.flux_integral import (
     integer_flux_integral_x,
     fractional_flux_integral_x
 )
-from typing import Union
 
 
 class FluxFormSemiLagX:
@@ -26,6 +27,7 @@ class FluxFormSemiLagX:
     def __init__(self, config: Config):
         self.config = config
         self.backend = self.config.gt4py_backend
+        self.domain = self.config.domain
 
         nx, ny, nz =  self.config.domain
 
@@ -121,14 +123,22 @@ class FluxFormSemiLagX:
                  ):
 
         # todo : temporary managed storage
-        with managed_temporary_storage() as tmp:
+        with managed_temporary_storage() as (
+            vxh,
+            cxh_int,
+            cxh_frac,
+            rhohx,
+            a0x,
+            a1x,
+            a2x
+        ):
 
             # Cell faces remapping of v
             self.velocity_on_faces_x(
                 vx=vx,
                 vxh=vxh,
                 domain=self.domain,
-                origin=self.origin
+                origin=(0, 0, 0)
             )
             self.split_cfl_x(
                 vxh=vxh,
@@ -137,19 +147,19 @@ class FluxFormSemiLagX:
                 dx=dx,
                 dt=dt,
                 domain=self.domain,
-                origin=self.origin
+                origin=(0, 0, 0)
             )
             self.tracer_interpolation_x(
                 psihx=rhohx,
                 psi=rho0,
                 domain=self.domain,
-                origin=self.origin
+                origin=(0, 0, 0)
             )
             self.monotonic_limiter_x(
                 psi=rho0,
                 psihx=rhohx,
                 domain=self.domain,
-                origin=self.origin
+                origin=(0, 0, 0)
             )
             self.ppm_coefficients_x(
                 psi=rho0,
@@ -158,7 +168,7 @@ class FluxFormSemiLagX:
                 a1=a1x,
                 a2=a2x,
                 domain=self.domain,
-                origin=self.origin
+                origin=(0, 0, 0)
             )
 
             # numpy / dace interpolations
@@ -196,5 +206,5 @@ class FluxFormSemiLagX:
                 dv=dv,
                 dt=dt,
                 domain=self.domain,
-                origin=self.origin
+                origin=(0, 0, 0)
             )
