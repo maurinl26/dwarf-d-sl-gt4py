@@ -1,13 +1,15 @@
 import numpy as np
 from typing import Tuple
 from gt4py.cartesian.gtscript import stencil
+from config import Config
 
 from sl_dace.stencils.blossey import radius, theta
 
 class PolarCoordinates:
 
-    def __init__(self, grid: Tuple[int]):
-        self.grid = grid
+    def __init__(self, config: Config):
+        self.config = config
+        self.grid = self.config.domain
 
         # X and Y axis
         self.xcr = np.arange(0, self.grid[0])

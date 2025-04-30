@@ -22,6 +22,9 @@ class SLInit:
                  )
 
     # todo: implement call
-    def __call__(self):
+    def __call__(self,
+                 state: dict):
+
+
         ...
 

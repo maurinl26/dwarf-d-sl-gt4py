@@ -3,10 +3,6 @@ from sl_dace.elarche import Elarche
 import numpy as np
 import dace
 
-@pytest.fixture(name="domain", scope="module")
-def domain_fixture():
-    return (50, 50, 15)
-
 
 def test_elarche(domain):
 

@@ -33,8 +33,15 @@ class Blossey:
             definition=copy
         )
 
-    def blossey_velocity(self):
-        self.blossey_stf(stf, xcr, ycr, mt)
+    def blossey_velocity(self,
+                         stf: np.ndarray,
+                         xcr: np.ndarray,
+                         ycr: np.ndarray,
+                         mt: float,
+                         dx: float,
+                         dy: float,
+                         ):
+        u, v = self.blossey_stf(stf, xcr, ycr, mt)
         self.stream_function_xy(u, v, stf, dx, dy)
 
     def init_blossey(self, xcr: np.ndarray, ycr: np.ndarray, mt: float, dt: float, dx: float, dy: float, nx: int, ny: int):
@@ -45,10 +52,14 @@ class Blossey:
 
         return vx, vy, vx_p, vy_p, vx_e, vy_e
 
-    def blossey_tracer(self, xcr, ycr):
+    def tracer_shape(self,
+                       xcr: np.ndarray,
+                       ycr: np.ndarray,
+                       tracer: np.ndarray,
+                       tracer_e: np.ndarray):
         # Tracer
         # todo: init tracer shape stencil
-        self.tracer_shape(tracer, xcr, ycr, 0)
+        self.blossey_tracer(tracer, xcr, ycr, 0)
         self.copy(tracer, tracer_e)
 
 

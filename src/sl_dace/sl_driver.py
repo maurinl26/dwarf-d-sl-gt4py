@@ -1,9 +1,11 @@
 from typing import Tuple
+from config import Config
 from sl_dace.dims import I, J, K
 
 class SLDriver:
 
     def __init__(self, config: Config, grid: Tuple[int]):
+        self.config = config
         self.grid = grid
 
         # sl init

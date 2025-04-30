@@ -9,16 +9,45 @@ from sl_dace.interpolation.interpolation_2d import (
 from sl_dace.elarche import Elarche
 from sl_dace.dims import I, J, K
 import dace
+from contextlib import contextmanager
+from ifs_physics_common.framework.grid import ComputationalGrid
 
 from typing import Tuple
 
 logging.getLogger(__name__)
 
+# note : similar to ifs_physics_common
+@contextmanager
+def temporaries(
+        temporary_fields: dict,
+        grids: ComputationalGrid
+):
+
+    yield {
+        name: np.zeros(grids[field_desc["grid"]].shape, dtype=field_desc[type])
+        for name, field_desc in temporary_fields.items()
+    }
 
 class SmiLagXY:
 
     def __init__(self, grid: Tuple[int], nitmp: int = 4):
         self.elarche = Elarche(grid, nitmp)
+
+    @cached_property
+    def _input_properties(self):
+        return {
+            "vx": {"grid": (I, J, K), "dtype": float},
+            "vy": {"grid": (I, J, K), "dtype": float},
+            "tracer": {"grid": (I, J, K), "dtype": float}
+        }
+
+    @cached_property
+    def _inout_properties(self):
+        return {
+            "vx_e": {"grid": (I, J, K), "dtype": float},
+            "vy_e": {"grid": (I, J, K), "dtype": float},
+            "tracer_e": {"grid": (I, J, K), "dtype": float}
+        }
 
     @cached_property
     def _temporaries(self):
@@ -38,9 +67,9 @@ class SmiLagXY:
                  dth: float
                  ):
 
-        #todo context manager for temporaries
+        with temporaries(self._temporaries) as tempo:
 
-        self.elarche(
+            self.elarche(
             idx=x_axis,
             jdx=y_axis,
             dx=grid_spacings[0],
@@ -52,20 +81,20 @@ class SmiLagXY:
             vy_e=state["vy_e"],
             vx=state["vx"],
             vy=state["vy"],
-            lx=tmps["lx"],
-            ly=tmps["ly"],
-            i_dep=tmps["i_dep"],
-            j_dep=tmps["j_dep"]
+            lx=tempo["lx"],
+            ly=tempo["ly"],
+            i_dep=tempo["i_dep"],
+            j_dep=tempo["j_dep"]
         )
 
-        # Interpolate
-        self.elarche.d_interpolate_lin_2d(
+            # Interpolate
+            self.elarche.d_interpolate_lin_2d(
             psi=state["tracer_e"],
             psi_dep=state["tracer"],
-            lx=tmps["lx"],
-            ly=tmps["ly"],
-            i_dep=tmps["i_dep"],
-            j_dep=tmps["j_dep"],
+            lx=tempo["lx"],
+            ly=tempo["ly"],
+            i_dep=tempo["i_dep"],
+            j_dep=tempo["j_dep"],
             **self.elarche.symbol_mapping
         )
 
