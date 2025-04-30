@@ -7,5 +7,7 @@ sl_venv
 .pytest_cache
 figures
 TRACER_LAB
+_dacegraphs
+src/dwarf_d_sl_gt4py.egg-info
 
 index.txt

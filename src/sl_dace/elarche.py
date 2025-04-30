@@ -120,4 +120,24 @@ class Elarche:
 
         return lx, ly, i_dep, j_dep
 
+    def interpolate_tracer_field(
+            self,
+            tracer_dep: dace.float32[I, J, K],
+            tracer: dace.float32[I, J, K],
+            lx: dace.float32[I, J, K],
+            ly: dace.float32[I, J, K],
+            i_dep: dace.int32[I, J, K],
+            j_dep: dace.int32[I, J, K]
+    ):
+
+        self.d_interpolate_lin_2d(
+            psi_dep=tracer_dep,
+            psi=tracer,
+            lx=lx,
+            ly=ly,
+            i_dep=i_dep,
+            j_dep=j_dep,
+            **self.symbol_mapping
+        )
+
 

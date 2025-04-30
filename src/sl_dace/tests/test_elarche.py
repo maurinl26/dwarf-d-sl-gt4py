@@ -3,34 +3,30 @@ from sl_dace.elarche import Elarche
 import numpy as np
 import dace
 
-@pytest.fixture(name="grid", scope="module")
-def grid_fixture():
-    return (50, 50, 15)
 
-
-def test_elarche(grid):
+def test_elarche(domain):
 
     dx = np.float32(0.01)
     dy = np.float32(0.01)
     dth = np.float32(0.004)
 
-    idx = np.ones(shape=grid, dtype=np.int32)
-    jdx = np.ones(shape=grid, dtype=np.int32)
+    idx = np.ones(shape=domain, dtype=np.int32)
+    jdx = np.ones(shape=domain, dtype=np.int32)
 
-    vx = np.zeros(shape=grid, dtype=np.float32)
-    vy = np.zeros(shape=grid, dtype=np.float32)
-    vx_tmp = np.zeros(shape=grid, dtype=np.float32)
-    vy_tmp = np.zeros(shape=grid, dtype=np.float32)
-    vx_e = np.zeros(shape=grid, dtype=np.float32)
-    vy_e = np.zeros(shape=grid, dtype=np.float32)
+    vx = np.zeros(shape=domain, dtype=np.float32)
+    vy = np.zeros(shape=domain, dtype=np.float32)
+    vx_tmp = np.zeros(shape=domain, dtype=np.float32)
+    vy_tmp = np.zeros(shape=domain, dtype=np.float32)
+    vx_e = np.zeros(shape=domain, dtype=np.float32)
+    vy_e = np.zeros(shape=domain, dtype=np.float32)
 
     # Outputs
-    lx = np.zeros(shape=grid, dtype=np.float32)
-    ly = np.zeros(shape=grid, dtype=np.float32)
-    i_dep = np.ones(shape=grid, dtype=np.int32)
-    j_dep = np.zeros(shape=grid, dtype=np.int32)
+    lx = np.zeros(shape=domain, dtype=np.float32)
+    ly = np.zeros(shape=domain, dtype=np.float32)
+    i_dep = np.ones(shape=domain, dtype=np.int32)
+    j_dep = np.zeros(shape=domain, dtype=np.int32)
 
-    Elarche(grid, nitmp=1)(
+    Elarche(domain, nitmp=1)(
         dx=dx,
         dy=dy,
         dth=dth,

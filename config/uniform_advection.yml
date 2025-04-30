@@ -2,7 +2,6 @@ model_starttime: 0
 model_endtime: 1
 dt: 1
 
-nitmp: 4
 
 xmin: 0
 xmax: 1
@@ -14,3 +13,7 @@ ny: 50
 
 bcx_kind: 1
 bcy_kind: 1
+
+#Options
+lsettls: True
+nitmp: 4

@@ -2,15 +2,20 @@ import numpy as np
 import dace
 from gt4py.cartesian.gtscript import stencil
 from typing import Tuple
+from config import Config
 
 from sl_dace.stencils.gradient import c2_x, c2_y
 
 
 class LipschitzDiag:
 
-    def __init__(self, grid: Tuple[int]):
+    def __init__(self,
+                 grid: Tuple[int],
+                 config: Config,
+                 ):
 
         # todo: a grid class which takes
+        self.config = config
         self.grid = grid
 
         self.c2_x = stencil(definition=c2_x, name="c2_x")
@@ -34,5 +39,5 @@ class LipschitzDiag:
         self.c2_y(v, dv_dy, dy, origin=(0, 1, 0), domain=self.grid)
 
         # dace.reduce for performances
-        return dth * np.max(np.maximum(du_dx, du_dy), np.maximum(dv_dx, dv_dy))
+        return dth * np.maximum(np.maximum(du_dx, du_dy), np.maximum(dv_dx, dv_dy))
 

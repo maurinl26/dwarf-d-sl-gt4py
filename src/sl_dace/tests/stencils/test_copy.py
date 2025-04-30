@@ -3,7 +3,7 @@ import numpy as np
 import pytest
 import logging
 
-from sl_dace.stencils.copy import copy
+from sl_dace.stencils.copy import copy, backup
 from typing import Tuple
 
 
@@ -35,9 +35,31 @@ def test_copy(backend: str, dtypes: dict, domain_with_halo: Tuple[int]):
         origin=(0, 0, 0)
     )
 
-    print(vx_tmp.mean())
-    print(vy_tmp.mean())
-
     assert vx_tmp.mean() == 1
     assert vy_tmp.mean() == 1
+
+
+def test_backup(backend: str, dtypes: dict, domain: Tuple[int]):
+    logging.info(f"Backend : {backend}")
+    stencil_backup = stencil(backend=backend,
+                           definition=backup,
+                           name="backup",
+                           dtypes=dtypes,
+                           build_info={},
+                           externals={},
+                           rebuild=True,
+                           )
+
+    tracer = np.zeros((50, 50, 10), dtype=dtypes[float])
+    tracer_e = np.ones((50, 50, 10), dtype=dtypes[float])
+
+    stencil_backup(
+        tracer=tracer,
+        tracer_e=tracer_e,
+        domain=domain,
+        origin=(0, 0, 0)
+    )
+
+    assert tracer.mean() == 1
+
 
