@@ -45,8 +45,6 @@ def test_dep_search_1d(backend: str, dtypes: dict, inner_domain: Tuple[int], ori
         origin=origin
     )
 
-    print(i_d.mean())
-
     # one cell left shift
     assert i_d.mean() == 0
 

@@ -1,10 +1,12 @@
 import pytest
 from typing import Union
 import numpy as np
+from config import Config
 
 
 def get_cpu_backends():
     return ["numpy", "dace:cpu"]
+
 
 @pytest.fixture(name="dtypes", scope="module")
 def dtypes_fixtures(precision: Union["single", "double"] = 'single'):
@@ -49,6 +51,11 @@ def o5_padding_origin_fixture():
 def domain(nx: int = 50, ny: int = 50, nz: int = 10):
     return nx, ny, nz
 
+@pytest.fixture(name="computational_grid", scope="module")
+def computational_grid_fixture(domain):
+    from ifs_physics_common.framework.grid import ComputationalGrid
+    return ComputationalGrid(*domain)
+
 @pytest.fixture(name="inner_domain", scope="module")
 def inner_domain_fixture(domain):
     return tuple(dim - 1 for dim in domain)
@@ -56,3 +63,15 @@ def inner_domain_fixture(domain):
 @pytest.fixture(name="large_domain", scope="module")
 def large_domain_fixture(nx: int = 255, ny: int = 255, nz: int = 120):
     return nx, ny, nz
+
+@pytest.fixture(name="config", scope="module")
+def config_fixture():
+    return Config(
+        dt=1,
+        xmin=0,
+        xmax=1,
+        nx=50,
+        ymin=0,
+        ymax=1,
+        ny=50,
+    )

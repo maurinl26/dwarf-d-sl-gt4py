@@ -38,7 +38,7 @@ def test_copy(backend: str, dtypes: dict, domain_with_halo: Tuple[int]):
     assert vx_tmp.mean() == 1
     assert vy_tmp.mean() == 1
 
-
+@pytest.mark.parametrize("backend", ["dace:cpu"])
 def test_backup(backend: str, dtypes: dict, domain: Tuple[int]):
     logging.info(f"Backend : {backend}")
     stencil_backup = stencil(backend=backend,
