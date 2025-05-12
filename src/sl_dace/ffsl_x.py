@@ -1,7 +1,8 @@
+from itertools import repeat
+
+from ifs_physics_common.framework.config import GT4PyConfig
 from ifs_physics_common.framework.storage import managed_temporary_storage
-from ifs_physics_common.framework.components import DiagnosticComponent
 from ifs_physics_common.framework.grid import I, J, K, ComputationalGrid
-from ifs_physics_common.framework.stencil import compile_stencil
 from gt4py.cartesian.gtscript import stencil
 from functools import partial, cached_property
 import numpy as np
@@ -11,11 +12,10 @@ from sl_dace.stencils.ffsl import (
     split_cfl_x,
     fourth_order_facet_interpolation_x,
     monotonic_limiter_x,
-    fractional_flux_x,
     inner_density_update_x,
-    fractional_and_integer_flux_sum
+    integer_and_fractional_flux_sum
 )
-from sl_dace.ppm import ppm_coefficients_x
+from sl_dace.stencils.ppm import ppm_coefficients_x
 from sl_dace.interpolation.flux_integral import (
     integer_flux_integral_x,
     fractional_flux_integral_x
@@ -24,10 +24,15 @@ from sl_dace.interpolation.flux_integral import (
 
 class FluxFormSemiLagX:
 
-    def __init__(self, config: Config):
+    def __init__(self, config: Config, gt4py_config: GT4PyConfig, computational_grid: ComputationalGrid):
         self.config = config
-        self.backend = self.config.gt4py_backend
+        self.gt4py_config = gt4py_config
+        self.backend = self.gt4py_config.backend
+        self.computational_grid = computational_grid
+
         self.domain = self.config.domain
+        self.inner_domain = tuple(dim - 1 for dim in self.domain)
+
 
         nx, ny, nz =  self.config.domain
 
@@ -59,7 +64,7 @@ class FluxFormSemiLagX:
         )
         self.flux_sum = stencil(
             name="fractional_and_integer_flux_sum",
-            defintion=fractional_and_integer_flux_sum,
+            defintion= integer_and_fractional_flux_sum,
             backend=self.backend
         )
         self.inner_density_update_x = stencil(
@@ -112,6 +117,7 @@ class FluxFormSemiLagX:
             "fhx_x": {"grid": (I - 1/2, J, K), "type": "float"}
         }
 
+    # todo: shift call to dace
     def __call__(self,
                  vx: np.ndarray,
                  vy: np.ndarray,
@@ -119,64 +125,72 @@ class FluxFormSemiLagX:
                  rho1: np.ndarray,
                  dt: float,
                  ds_yz: float,
-                 dv: float
+                 dv: float,
+                 dx: float
                  ):
 
-        # todo : temporary managed storage
-        with managed_temporary_storage() as (
+        with managed_temporary_storage(
+            self.computational_grid,
+            ((I, J, K), "int"),
+            *repeat(((I, J, K), "float"), 9),
+            gt4py_config=self.gt4py_config
+        ) as (
+            chx_int,
             vxh,
-            cxh_int,
-            cxh_frac,
-            rhohx,
+            chx_frac,
+            rho_hx,
             a0x,
             a1x,
-            a2x
+            a2x,
+            fhx,
+            fhx_int,
+            fhx_frac,
         ):
 
             # Cell faces remapping of v
             self.velocity_on_faces_x(
                 vx=vx,
                 vxh=vxh,
-                domain=self.domain,
-                origin=(0, 0, 0)
+                domain=self.inner_domain,
+                origin=(1, 0, 0)
             )
             self.split_cfl_x(
                 vxh=vxh,
-                cxh_int=cxh_int,
-                cxh_frac=cxh_frac,
+                cxh_int=chx_int,
+                cxh_frac=chx_frac,
                 dx=dx,
                 dt=dt,
-                domain=self.domain,
-                origin=(0, 0, 0)
+                domain=self.inner_domain,
+                origin=(1, 0, 0)
             )
             self.tracer_interpolation_x(
-                psihx=rhohx,
+                psihx=rho_hx,
                 psi=rho0,
-                domain=self.domain,
-                origin=(0, 0, 0)
+                domain=self.inner_domain,
+                origin=(1, 0, 0)
             )
             self.monotonic_limiter_x(
                 psi=rho0,
-                psihx=rhohx,
-                domain=self.domain,
-                origin=(0, 0, 0)
+                psihx=rho_hx,
+                domain=self.inner_domain,
+                origin=(1, 0, 0)
             )
             self.ppm_coefficients_x(
                 psi=rho0,
-                psih=rhohx,
+                psih=rho_hx,
                 a0=a0x,
                 a1=a1x,
                 a2=a2x,
-                domain=self.domain,
-                origin=(0, 0, 0)
+                domain=self.inner_domain,
+                origin=(1, 0, 0)
             )
 
             # numpy / dace interpolations
             self.integer_flux_integral_x(
-            fhx_int,
+                fhx_int=fhx_int,
                 chx_int=chx_int,
-                fhx_int=rho,
-                ds_sz=ds_zy,
+                rho=rho0,
+                ds_yz=ds_yz,
                 dv=dv,
                 dt=dt,
             )
@@ -191,20 +205,22 @@ class FluxFormSemiLagX:
                 dv=dv,
                 dt=dt
             )
+            
+            #sum and density update
             self.flux_sum(
                 fhx=fhx,
                 fhx_int=fhx_int,
                 fhx_frac=fhx_frac,
-                domain=self.domain,
-                origin=self.origin
+                domain=self.inner_domain,
+                origin=(1, 0, 0)
             )
             self.inner_density_update_x(
                 rho=rho0,
                 rho_ix=rho1,
-                fhx_x=fhx_x,
+                fhx_x=fhx,
                 ds_yz=ds_yz,
                 dv=dv,
                 dt=dt,
-                domain=self.domain,
-                origin=(0, 0, 0)
+                domain=self.inner_domain,
+                origin=(1, 0, 0)
             )

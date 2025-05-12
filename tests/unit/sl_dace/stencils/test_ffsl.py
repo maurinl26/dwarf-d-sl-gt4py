@@ -2,7 +2,7 @@ import pytest
 from gt4py.cartesian.gtscript import stencil
 import numpy as np
 
-from tests.unit.sl_dace.conftest import get_cpu_backends
+from tests.conftest import get_cpu_backends
 from sl_dace.stencils.ffsl import (
     velocity_on_faces_x,
     split_cfl_x,

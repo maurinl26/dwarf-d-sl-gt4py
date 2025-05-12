@@ -2,6 +2,7 @@ import pytest
 from typing import Union
 import numpy as np
 from config import Config
+from ifs_physics_common.framework.config import GT4PyConfig
 
 
 def get_cpu_backends():
@@ -74,4 +75,11 @@ def config_fixture():
         ymin=0,
         ymax=1,
         ny=50,
+    )
+
+
+@pytest.fixture(name="gt4py_config", scope="module")
+def gt4py_config_fixture():
+    return GT4PyConfig(
+        backend="numpy"
     )
