@@ -36,14 +36,14 @@ def integer_flux_integral_x(
     for i,j in product(I, J):
         for k in K:
 
-            if chx_int >= 0:
+            if chx_int[i, j, k] >= 0:
                 fhx_int[i, j, k] = np.sum(
-                    rho[i - chx_int: i, j, k] * dv
+                    rho[i - chx_int[i, j, k]: i, j, k] * dv
                 ) / (ds_yz * dt)
 
             else:
                 fhx_int[i, j, k] = np.sum(
-                    rho[i + 1: i - chx_int, j, k] * dv
+                    rho[i + 1: i - chx_int[i, j, k], j, k] * dv
                 ) / (ds_yz * dt)
 
 
@@ -84,11 +84,11 @@ def fractional_flux_integral_x(
     for i,j in product(I, J):
         for k in K:
 
-            if chx_int >= 0:
+            if chx_int[i, j, k] >= 0:
                 ppm_coeffs = (
-                    a0[i - chx_int - 1,j,k],
-                    a1[i - chx_int - 1, j, k],
-                    a2[i - chx_int - 1, j, k]
+                    a0[i - chx_int[i, j, k] - 1,j,k],
+                    a1[i - chx_int[i, j, k] - 1, j, k],
+                    a2[i - chx_int[i, j, k] - 1, j, k]
                 )
 
                 fhx_frac[i, j, k] = (
@@ -98,9 +98,9 @@ def fractional_flux_integral_x(
 
             else:
                 ppm_coeffs = (
-                    a0[i - chx_int - 1, j, k],
-                    a1[i - chx_int - 1, j, k],
-                    a2[i - chx_int - 1, j, k]
+                    a0[i - chx_int[i,j,k] - 1, j, k],
+                    a1[i - chx_int[i,j,k] - 1, j, k],
+                    a2[i - chx_int[i,j,k] - 1, j, k]
                 )
 
                 fhx_frac[i, j, k] = (

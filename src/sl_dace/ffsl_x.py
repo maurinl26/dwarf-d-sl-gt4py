@@ -1,5 +1,6 @@
 from itertools import repeat
 
+import dace
 from ifs_physics_common.framework.config import GT4PyConfig
 from ifs_physics_common.framework.storage import managed_temporary_storage
 from ifs_physics_common.framework.grid import I, J, K, ComputationalGrid
@@ -21,7 +22,7 @@ from sl_dace.interpolation.flux_integral import (
     fractional_flux_integral_x
 )
 
-
+""
 class FluxFormSemiLagX:
 
     def __init__(self, config: Config, gt4py_config: GT4PyConfig, computational_grid: ComputationalGrid):
@@ -63,8 +64,8 @@ class FluxFormSemiLagX:
             backend=self.backend
         )
         self.flux_sum = stencil(
-            name="fractional_and_integer_flux_sum",
-            defintion= integer_and_fractional_flux_sum,
+            name="integer_and_fractional_flux_sum",
+            definition=integer_and_fractional_flux_sum,
             backend=self.backend
         )
         self.inner_density_update_x = stencil(
@@ -118,6 +119,7 @@ class FluxFormSemiLagX:
         }
 
     # todo: shift call to dace
+    # @dace.method
     def __call__(self,
                  vx: np.ndarray,
                  vy: np.ndarray,
@@ -163,11 +165,18 @@ class FluxFormSemiLagX:
                 domain=self.inner_domain,
                 origin=(1, 0, 0)
             )
+
+            interpolation_domain = (
+                self.inner_domain[0] - 2,
+                self.inner_domain[1],
+                self.inner_domain[2]
+            )
+
             self.tracer_interpolation_x(
                 psihx=rho_hx,
                 psi=rho0,
-                domain=self.inner_domain,
-                origin=(1, 0, 0)
+                domain=interpolation_domain,
+                origin=(2, 0, 0)
             )
             self.monotonic_limiter_x(
                 psi=rho0,
@@ -175,14 +184,16 @@ class FluxFormSemiLagX:
                 domain=self.inner_domain,
                 origin=(1, 0, 0)
             )
+
+
             self.ppm_coefficients_x(
                 psi=rho0,
                 psih=rho_hx,
                 a0=a0x,
                 a1=a1x,
                 a2=a2x,
-                domain=self.inner_domain,
-                origin=(1, 0, 0)
+                domain=interpolation_domain,
+                origin=(2, 0, 0)
             )
 
             # numpy / dace interpolations
@@ -217,10 +228,11 @@ class FluxFormSemiLagX:
             self.inner_density_update_x(
                 rho=rho0,
                 rho_ix=rho1,
-                fhx_x=fhx,
+                fhx=fhx,
                 ds_yz=ds_yz,
                 dv=dv,
                 dt=dt,
                 domain=self.inner_domain,
                 origin=(1, 0, 0)
             )
+

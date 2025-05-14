@@ -51,7 +51,7 @@ def velocity_on_faces_y(
 @stencil_collection("split_cfl_x")
 def split_cfl_x(
         vxh: Field[IJK, float],
-        cxh_int: Field[IJK, float],
+        cxh_int: Field[IJK, int],
         cxh_frac: Field[IJK, float],
         dx: float,
         dt: float
