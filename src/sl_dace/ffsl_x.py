@@ -12,7 +12,7 @@ from sl_dace.stencils.ffsl import (
     velocity_on_faces_x,
     split_cfl_x,
     fourth_order_facet_interpolation_x,
-    monotonic_limiter_x,
+    soft_monotonic_limiter_x,
     inner_density_update_x,
     integer_and_fractional_flux_sum
 )
@@ -55,7 +55,7 @@ class FluxFormSemiLagX:
         )
         self.monotonic_limiter_x = stencil(
             name="monotonic_limiter_x",
-            definition=monotonic_limiter_x,
+            definition=soft_monotonic_limiter_x,
             backend=self.backend,
         )
         self.ppm_coefficients_x = stencil(
@@ -197,6 +197,7 @@ class FluxFormSemiLagX:
             )
 
             # numpy / dace interpolations
+            # todo : create soft integral
             self.integer_flux_integral_x(
                 fhx_int=fhx_int,
                 chx_int=chx_int,

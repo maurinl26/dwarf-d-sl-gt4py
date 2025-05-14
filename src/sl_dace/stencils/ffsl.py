@@ -1,5 +1,5 @@
-from ifs_physics_common.framework.stencil import stencil_collection
-from gt4py.cartesian.gtscript import computation, PARALLEL, interval, Field, IJK, floor
+from ifs_physics_common.framework.stencil import stencil_collection, function_collection
+from gt4py.cartesian.gtscript import computation, PARALLEL, interval, Field, IJK, floor, exp, function
 
 
 # 1. remap velocity
@@ -122,8 +122,8 @@ def fourth_order_facet_interpolation_y(
 # 4. PPM limiter
 @stencil_collection("monotonic_limiter_x")
 def monotonic_limiter_x(
-        psihx: Field[IJK, float],
-        psi: Field[IJK, float]
+    psihx: Field[IJK, float],
+    psi: Field[IJK, float]
 ):
     """
     Monotonic limiter for face values.
@@ -139,6 +139,30 @@ def monotonic_limiter_x(
         )
 
 
+@function_collection("sigmoid")
+@function
+def sigmoid(
+    x: float
+):
+    """ Sigmoid activation function """
+    return exp(x) / (1 + exp(x))
+
+
+@stencil_collection("soft_monotonic_limiter_x")
+def soft_monotonic_limiter_x(
+    psihx: Field[IJK, float],
+    psi: Field[IJK, float]
+):
+    """ Differentiable limiter with min max """
+    with computation(PARALLEL), interval(...):
+        normalized_value = sigmoid(
+            (psihx[0, 0, 0] - psi[0, 0, 0]) /
+            (psi[-1, 0, 0] - psi[0, 0, 0])
+        )
+        psihx[0, 0, 0] = (
+            psi[0, 0, 0] + (psi[-1, 0, 0] - psi[0, 0, 0]) * normalized_value
+        )
+
 @stencil_collection("monotonic_limiter_y")
 def monotonic_limiter_y(
     psihy: Field[IJK, float],
@@ -148,6 +172,23 @@ def monotonic_limiter_y(
         psihy[0, 0, 0] = min(
             max(psi[0, -1, 0], psi[0, 0, 0]),
             max(psihy[0, 0, 0], min(psi[0, -1, 0], psi[0, 0, 0]))
+        )
+
+
+@stencil_collection("soft_monotonic_limiter_y")
+def soft_monotonic_limiter_y(
+    psihx: Field[IJK, float],
+    psi: Field[IJK, float]
+):
+    """ Differentiable limiter with min max """
+    with computation(PARALLEL), interval(...):
+        normalized_value = sigmoid(
+            (psihx[0, 0, 0] - psi[0, 0, 0]) /
+            (psi[0, -1, 0] - psi[0, 0, 0])
+        )
+        psihx[0, 0, 0] = (
+            psi[0, 0, 0]
+            + (psi[0, -1, 0] - psi[0, 0, 0]) * normalized_value
         )
 
 
