@@ -17,23 +17,22 @@ class Config:
     ymax: float
     ny: int
     
-
-    bcx_kind: int
-    bcy_kind: int
+    # todo: bc kinds as enum
+    bcx_kind: int = field(default=1)
+    bcy_kind: int = field(default=1)
     
-    lsettls: bool
+    lsettls: bool = field(default=True)
     
-    model_starttime: float 
-    model_endtime: float
+    model_starttime: float = field(default=0.0)
+    model_endtime: float = field(default=1.0)
 
-    nz: int = field(default=1)
+    nz: int = field(default=10)
 
     filter: bool = field(default=False)
 
     nstep: float = field(init=False)
     nitmp: float = field(default=4)
 
-    gt4py_backend : str = field(default="numpy")
 
     def __post_init__(self):
         
