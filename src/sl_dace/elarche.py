@@ -1,17 +1,18 @@
 import dace
 from gt4py.cartesian.gtscript import stencil
 from typing import Tuple
+from utils.typingx import dtype_float, dtype_int
 
 # stencils
 from sl_dace.interpolation.interpolation_2d import interpolate_lin_2d
 from sl_dace.stencils.copy import copy
 from sl_dace.stencils.dep_search_1d import dep_search_1d
-from sl_dace.dims import I, J, K
-
+from sl_dace.utils.dims import I, J, K
+from sl_dace.utils.typingx import dtype_float
 
 class Elarche:
 
-    def __init__(self, grid: Tuple[int], halo: int = 0, nitmp: int = 4):
+    def __init__(self, grid: Tuple[int], halo: int = 0, nitmp: int = 4, backend: str = "dace:cpu"):
         self.grid = grid
         self.symbol_mapping = {
                 "I": grid[0],
@@ -21,44 +22,51 @@ class Elarche:
             }
         self.nitmp = nitmp
 
-        # stencils
+        # stencils gt4py
         self.copy = stencil(
-            backend="dace:cpu",
+            backend=backend,
             definition=copy,
             name="copy"
         )
         self.dep_search_1d = stencil(
-            backend="dace:cpu",
+            backend=backend,
             definition=dep_search_1d,
             name="dep_search_1d"
         )
 
         # dace
         # interpolate_lin_2d
+        sdfg = (
+            dace.program(interpolate_lin_2d)
+            .to_sdfg()
+        )
+        if "gpu" in backend:
+            sdfg.apply_gpu_transformations()
+
         self.d_interpolate_lin_2d = (
             dace.program(interpolate_lin_2d)
             .to_sdfg()
             .compile()
-        )
+            )
 
-
+    # todo : shift to dace
     def __call__(self,
-                 dx: dace.float32,
-                 dy: dace.float32,
-                 dth: dace.float32,
-                 idx: dace.int32[I, J, K],
-                 jdx: dace.int32[I, J, K],
-                 vx: dace.float32[I, J, K],
-                 vy: dace.float32[I, J, K],
-                 vx_tmp: dace.float32[I, J, K],
-                 vy_tmp: dace.float32[I, J, K],
-                 vx_e: dace.float32[I, J, K],
-                 vy_e: dace.float32[I, J, K],
+                 dx: dtype_float,
+                 dy: dtype_float,
+                 dth: dtype_float,
+                 idx: dtype_int[I, J, K],
+                 jdx: dtype_int[I, J, K],
+                 vx: dtype_float[I, J, K],
+                 vy: dtype_float[I, J, K],
+                 vx_tmp: dtype_float[I, J, K],
+                 vy_tmp: dtype_float[I, J, K],
+                 vx_e: dtype_float[I, J, K],
+                 vy_e: dtype_float[I, J, K],
                  # Outputs
-                 lx: dace.float32[I, J, K],
-                 ly: dace.float32[I, J, K],
-                 i_dep: dace.int32[I, J, K],
-                 j_dep: dace.int32[I, J, K],
+                 lx: dtype_float[I, J, K],
+                 ly: dtype_float[I, J, K],
+                 i_dep: dtype_int[I, J, K],
+                 j_dep: dtype_int[I, J, K],
         ):
 
         # Temporaries
@@ -122,12 +130,12 @@ class Elarche:
 
     def interpolate_tracer_field(
             self,
-            tracer_dep: dace.float32[I, J, K],
-            tracer: dace.float32[I, J, K],
-            lx: dace.float32[I, J, K],
-            ly: dace.float32[I, J, K],
-            i_dep: dace.int32[I, J, K],
-            j_dep: dace.int32[I, J, K]
+            tracer_dep: dtype_float[I, J, K],
+            tracer: dtype_float[I, J, K],
+            lx: dtype_float[I, J, K],
+            ly: dtype_float[I, J, K],
+            i_dep: dtype_int[I, J, K],
+            j_dep: dtype_int[I, J, K]
     ):
 
         self.d_interpolate_lin_2d(
