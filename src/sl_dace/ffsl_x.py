@@ -22,13 +22,12 @@ from sl_dace.interpolation.flux_integral import (
     fractional_flux_integral_x
 )
 
-""
+
 class FluxFormSemiLagX:
 
     def __init__(self, config: Config, gt4py_config: GT4PyConfig, computational_grid: ComputationalGrid):
         self.config = config
         self.gt4py_config = gt4py_config
-        self.backend = self.gt4py_config.backend
         self.computational_grid = computational_grid
 
         self.domain = self.config.domain
@@ -41,37 +40,37 @@ class FluxFormSemiLagX:
         self.velocity_on_faces_x = stencil(
             name="velocity_on_faces_x",
             definition=velocity_on_faces_x,
-            backend=self.backend
+            backend=self.gt4py_config.backend
         )
         self.split_cfl_x = stencil(
             name="split_cfl_x",
             definition=split_cfl_x,
-            backend=self.backend
+            backend=self.gt4py_config.backend
         )
         self.tracer_interpolation_x = stencil(
             name="tracer_interpolation_x",
             definition=fourth_order_facet_interpolation_x,
-            backend=self.backend
+            backend=self.gt4py_config.backend
         )
         self.monotonic_limiter_x = stencil(
             name="monotonic_limiter_x",
             definition=monotonic_limiter_x,
-            backend=self.backend,
+            backend=self.gt4py_config.backend,
         )
         self.ppm_coefficients_x = stencil(
             name="ppm_coefficients_x",
             definition=ppm_coefficients_x,
-            backend=self.backend
+            backend=self.gt4py_config.backend
         )
         self.flux_sum = stencil(
             name="integer_and_fractional_flux_sum",
             definition=integer_and_fractional_flux_sum,
-            backend=self.backend
+            backend=self.gt4py_config.backend
         )
         self.inner_density_update_x = stencil(
             name="inner_density_update_x",
             definition=inner_density_update_x,
-            backend=self.backend
+            backend=self.gt4py_config.backend
         )
 
         # interpolations numpy / dace
