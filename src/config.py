@@ -3,6 +3,8 @@ import logging
 
 import numpy as np
 
+from ifs_physics_common.framework.grid import ComputationalGrid
+
 @dataclass
 class Config:
     
@@ -44,6 +46,10 @@ class Config:
 
         self.indices()
         self.coordinates()
+
+    @property
+    def computational_grid(self):
+        return ComputationalGrid(self.nx, self.ny, self.nz)
 
     @property
     def domain(self):
