@@ -30,6 +30,19 @@ class Config:
 
     nz: int = field(default=10)
 
+    # Spacings
+    dx: float = field(init=False)
+    dy: float = field(init=False)
+    dz: float = field(default=1)
+
+    # Cell sections
+    ds_xy: float = field(init=False)
+    ds_yz: float = field(init=False)
+    ds_xz: float = field(init=False)
+
+    # Volumes
+    dv: float = field(init=False)
+
     filter: bool = field(default=False)
 
     nstep: float = field(init=False)
@@ -46,6 +59,7 @@ class Config:
 
         self.indices()
         self.coordinates()
+        self.geometry()
 
     @property
     def computational_grid(self):
@@ -74,3 +88,10 @@ class Config:
         xcr, ycr = np.meshgrid(self.xc, self.yc)
         self.xcr, self.ycr = xcr.T, ycr.T
 
+
+    def geometry(self):
+        self.ds_xy = self.dx * self.dy
+        self.ds_yz = self.dy * self.dz
+        self.ds_xz = self.dx * self.dz
+
+        self.dv = self.dx * self.dy * self.dz
