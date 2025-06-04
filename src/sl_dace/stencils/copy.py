@@ -1,31 +1,22 @@
-from ifs_physics_common.framework.stencil import stencil_collection
-from gt4py.cartesian.gtscript import (
-    stencil,
-    Field,
-    IJK,
-    floor,
-    computation,
-    PARALLEL,
-    interval,
-)
-import numpy as np
+import dace
+from sl_dace.utils.typingx import dtype_int, dtype_float
+from sl_dace.utils.dims import I, J, K
 
 @stencil_collection("copy")
 def copy(
-    vx_tmp: Field[IJK, np.float32],
-    vy_tmp: Field[IJK, np.float32],
-    vx: Field[IJK, np.float32],
-    vy: Field[IJK, np.float32]
+    vx_tmp: dtype_float[I, J, K],
+    vy_tmp: dtype_float[I, J, K],
+    vx: dtype_float[I, J, K],
+    vy: dtype_float[I, J, K]
 ):
 
-    with computation(PARALLEL), interval(...):
+    for i, j, k in dace.map[0:I, 0:J, 0:K]:
         vx_tmp = vx
         vy_tmp = vy
 
-@stencil_collection("backup")
 def backup(
-    tracer: Field[IJK, np.float32],
-    tracer_e: Field[IJK, np.float32]
+    tracer: dtype_float[I, J, K],
+    tracer_e: dtype_float[I, J, K]
 ):
-    with computation(PARALLEL), interval(...):
-        tracer = tracer_e
+    for i, j, k in dace.map[0:I, 0:J, 0:K]:
+        tracer[i, j, k] = tracer_e[i, j, k]

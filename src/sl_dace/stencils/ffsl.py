@@ -1,12 +1,11 @@
-from ifs_physics_common.framework.stencil import stencil_collection
-from gt4py.cartesian.gtscript import computation, PARALLEL, interval, Field, IJK, floor
-
+import dace
+from sl_dace.utils.typingx import dtype_int, dtype_float
+from sl_dace.utils.dims import I, J, K
 
 # 1. remap velocity
-@stencil_collection("velocity_on_faces_x")
 def velocity_on_faces_x(
-        vx: Field[IJK, float],
-        vxh: Field[IJK, float],
+        vx: dtype_float[I, J, K],
+        vxh: dtype_float[I, J, K + 1],
 ):
     """
     compute face velocity given mass point velocity
@@ -22,13 +21,12 @@ def velocity_on_faces_x(
     :param vxh: velocity on x (face point)
     :param vyh: velocity on y (face point)
     """
-    with computation(PARALLEL), interval(...):
-        vxh[0, 0, 0] = 0.5 * (vx[-1, 0, 0] + vx[0, 0, 0])
+    for i, j, k in dace.map[0:I, 0:J, 0:K]:
+        vxh[i, j, k] = 0.5 * (vx[i-1, j, k] + vx[i, j, k])
 
-@stencil_collection("velocity_on_faces_y")
 def velocity_on_faces_y(
-        vy: Field[IJK, float],
-        vyh: Field[IJK, float]
+        vy: dtype_float[I, J, K],
+        vyh: dtype_float[I, J, K + 1],
 ):
     """
         compute face velocity given mass point velocity
@@ -43,18 +41,17 @@ def velocity_on_faces_y(
         :param vyh: velocity on y (face point)
         """
 
-    with computation(PARALLEL), interval(...):
-        vyh[0, 0, 0] = 0.5 * (vy[0, -1, 0] + vy[0, 1, 0])
+    for i, j, k in dace.map[0:I, 0:J, 0:K]:
+        vyh[i, j, k] = 0.5 * (vy[i, j-1, k] + vy[i, j-1, k])
 
 
 # 1.5 convert velocity to integer and fractional cfl
-@stencil_collection("split_cfl_x")
 def split_cfl_x(
-        vxh: Field[IJK, float],
-        cxh_int: Field[IJK, int],
-        cxh_frac: Field[IJK, float],
-        dx: float,
-        dt: float
+        vxh: dtype_float[I, J, K + 1],
+        cxh_int: dtype_int[I, J, K + 1],
+        cxh_frac: dtype_float[I, J, K + 1],
+        dx: dtype_float,
+        dt: dtype_float
 ):
     """
     Compute the fractional and the integer parts of the cfl on the faces
@@ -66,19 +63,18 @@ def split_cfl_x(
     :param dx: grid spacing on x
     :param dt: timestep
     """
-    with computation(PARALLEL), interval(...):
-        cxh =  - vxh * dt / dx
-        cxh_int = floor(cxh)
-        chx_frac = cxh - floor(cxh)
+    for i, j, k in dace.map[0:I, 0:J, 0:K]:
+        cxh[i, j, k] =  - vxh[i, j, k] * dt / dx
+        cxh_int[i, j, k] = floor(cxh[i, j, k])
+        chx_frac[i, j, k] = cxh[i, j, k] - floor(cxh[i, j, k])
 
 
-@stencil_collection("split_cfl_y")
 def split_cfl_y(
-        vyh: Field[IJK, float],
-        cyh_int: Field[IJK, int],
-        cyh_frac: Field[IJK, float],
-        dy: float,
-        dt: float
+        vyh: dtype_float[I, J, K + 1],
+        cyh_int: dtype_int[I, J, K + 1],
+        cyh_frac: dtype_float[I, J, K + 1],
+        dy: dtype_float,
+        dt: dtype_float
 ):
     """
 
@@ -88,17 +84,16 @@ def split_cfl_y(
     :param dy:
     :param dt:
     """
-    with computation(PARALLEL), interval(...):
-        cyh =  - vyh * dt / dy
-        cyh_int = floor(cyh)
-        chy_frac = cyh - floor(cyh)
+    for i, j, k in dace.map[0:I, 0:J, 0:K]:
+        cyh[i, j, k] =  - vyh[i, j, k] * dt / dy
+        cyh_int[i, j, k] = floor(cyh[i, j, k])
+        chy_frac[i, j, k] = cyh[i, j, k] - floor(cyh[i, j, k])
 
 
 # 2. Interpolate h (advected tracer)
-@stencil_collection("fourth_order_facet_interpolation_x")
 def fourth_order_facet_interpolation_x(
-        psihx: Field[IJK, float],
-        psi: Field[IJK, float]
+        psihx: dtype_float[I, J, K + 1],
+        psi: dtype_float[I, J, K]
 ):
     """
     4th order interpolation to compute facet values given mass point values
@@ -106,24 +101,22 @@ def fourth_order_facet_interpolation_x(
     :param psih: tracer field at facet points
     :param psi:  tracer field at mass points
     """
-    with computation(PARALLEL), interval(...):
-        psihx[0, 0, 0] = (psi[-2, 0, 0] + 7 * psi[-1, 0, 0] + 7 * psi[0, 0, 0] + psi[1, 0, 0]) / 12
+    for i, j, k in dace.map[0:I, 0:J, 0:K]:
+        psihx[i, j, k] = (psi[i-2, j, k] + 7 * psi[i-1, j, k] + 7 * psi[i, j, k] + psi[i+1, j, k]) / 12
 
 
-@stencil_collection("fourth_order_facet_interpolation_y")
 def fourth_order_facet_interpolation_y(
-        psihy: Field[IJK, float],
-        psi: Field[IJK, float]
+        psihy: dtype_float[I, J, K],
+        psi: dtype_float[I, J, K]
 ):
-    with computation(PARALLEL), interval(...):
+        for i, j, k in dace.map[0:I, 0:J, 0:K]:
         psihy[0, 0, 0] = (psi[0, -2, 0] + 7 * psi[0, -1, 0] + 7 * psi[0, 0, 0] + psi[0, 1, 0]) / 12
 
 
 # 4. PPM limiter
-@stencil_collection("monotonic_limiter_x")
 def monotonic_limiter_x(
-        psihx: Field[IJK, float],
-        psi: Field[IJK, float]
+        psihx: dtype_float[I, J, K + 1],
+        psi: dtype_float[I, J, K]
 ):
     """
     Monotonic limiter for face values.
@@ -132,22 +125,21 @@ def monotonic_limiter_x(
     :param psih: tracer field at facet point
     :param psi: tracer field at mass point
     """
-    with computation(PARALLEL), interval(...):
-        psihx[0, 0, 0] = min(
-            max(psi[-1, 0, 0], psi[0, 0, 0]),
-            max(psihx[0, 0, 0], min(psi[-1, 0, 0], psi[0, 0, 0]))
+    for i, j, k in dace.map[0:I, 0:J, 0:K]:
+        psihx[i, j, k] = min(
+            max(psi[i-1, j, k], psi[i, j, k]),
+            max(psihx[i, j, k], min(psi[i-1, j, k], psi[i, j, k]))
         )
 
 
-@stencil_collection("monotonic_limiter_y")
 def monotonic_limiter_y(
-    psihy: Field[IJK, float],
-    psi: Field[IJK, float]
+    psihy: dtype_float[I, J, K+1],
+    psi: dtype_float[I, J, K]
 ):
-    with computation(PARALLEL), interval(...):
-        psihy[0, 0, 0] = min(
-            max(psi[0, -1, 0], psi[0, 0, 0]),
-            max(psihy[0, 0, 0], min(psi[0, -1, 0], psi[0, 0, 0]))
+    for i, j, k in dace.map[0:I, 0:J, 0:K]:
+        psihy[i, j, k] = min(
+            max(psi[i, j-1, k], psi[i, j, k]),
+            max(psihy[i,j,k], min(psi[i, j-1, k], psi[i, j, k]))
         )
 
 
@@ -155,11 +147,10 @@ def monotonic_limiter_y(
 # sum of integer and fractional part also in numpy
 
 # 4.5 sum of fractional and integer flux
-@stencil_collection("integer_and_fractional_flux_sum")
 def integer_and_fractional_flux_sum(
-        fhx: Field[IJK, float],
-        fhx_int: Field[IJK, float],
-        fhx_frac: Field[IJK, float]
+        fhx: dtype_float[I, J, K],
+        fhx_int: dtype_float[I, J, K + 1],
+        fhx_frac: dtype_float[I, J, K + 1]
 ):
     """
     Sum integer and fractional part of the flux.
@@ -168,19 +159,18 @@ def integer_and_fractional_flux_sum(
     :param fhx_int: integer part of the flux
     :param fhx_frac: fractional part of the flux
     """
-    with computation(PARALLEL), interval(...):
-        fhx = fhx_frac + fhx_int
+    for i, j, k in dace.map[0:I, 0:J, 0:K]:
+        fhx[i, j, k] = fhx_frac[i, j, k] + fhx_int[i, j, k]
 
 
 # 5. density update with updated flux
-@stencil_collection("inner_density_update_x")
 def inner_density_update_x(
-        rho: Field[IJK, float],
-        rho_ix: Field[IJK, float],
-        fhx: Field[IJK, float],
-        ds_yz: float,
-        dv: float,
-        dt: float,
+        rho: dtype_float[I, J, K],
+        rho_ix: dtype_float[I, J, K],
+        fhx: dtype_float[I, J, K + 1],
+        ds_yz: dtype_float,
+        dv: dtype_float,
+        dt: dtype_float,
 ):
     """
     Compute the inner density update on x axis
@@ -191,18 +181,20 @@ def inner_density_update_x(
     :param dv: volume of cell
     :param dt: time step
     """
-    with computation(PARALLEL), interval(...):
-        rho_ix = rho - dt * (fhx[0, 0, 0] * ds_yz - fhx[0, 0, 0] * ds_yz) / dv
+    for i, j, k in dace.map[0:I, 0:J, 0:K]:
+        rho_ix[i, j, k] = (
+                rho[i, j, k]
+                - dt * (fhx[i, j, k] * ds_yz - fhx[i, j, k] * ds_yz) / dv
+        )
 
 
-@stencil_collection("inner_density_update_y")
 def inner_density_update_y(
-        rho: Field[IJK, float],
-        rho_iy: Field[IJK, float],
-        fhy: Field[IJK, float],
-        ds_xz: float,
-        dv: float,
-        dt: float
+        rho: dtype_float[I, J, K],
+        rho_iy: dtype_float[I, J, K],
+        fhy: dtype_float[I, J, K + 1],
+        ds_xz: dtype_float,
+        dv: dtype_float,
+        dt: dtype_float
 ):
     """
     Compute the inner density update on y axis
@@ -213,13 +205,16 @@ def inner_density_update_y(
     :param dv: volume of cell
     :param dt: time step
     """
-    with computation(PARALLEL), interval(...):
-        rho_iy = rho - dt * (fhy[0, 0, 0] * ds_xz - fhy[0, 0, 0] * ds_xz) / dv
+    for i, j, k in dace.map[0:I, 0:J, 0:K]:
+        rho_iy[i, j, k] = (
+                rho[i, j, k]
+                - dt * (fhy[i, j, k] * ds_xz - fhy[i, j, k] * ds_xz) / dv
+        )
 
 
 # todo : implement SWIFT outer steps for splitting
 def swift_outer_density_update(
-        rho_ay: Field[IJK, float],
+        rho_ay: dtype_float[I, J, K],
         sigma_x
 ):
     ...

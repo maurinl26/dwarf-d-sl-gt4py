@@ -1,6 +1,6 @@
 import numpy as np
 import dace
-from sl_dace.dims import I, J, K, H
+from sl_dace.utils.dims import I, J, K, H
 
 # dace sdfg
 def interpolate_lin_2d(

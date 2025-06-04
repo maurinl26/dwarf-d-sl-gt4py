@@ -1,38 +1,40 @@
+import logging
+from functools import cached_property, partial
 from itertools import repeat
 
 import dace
-from ifs_physics_common.framework.config import GT4PyConfig
-from ifs_physics_common.framework.storage import managed_temporary_storage
-from ifs_physics_common.framework.grid import I, J, K, ComputationalGrid
-from gt4py.cartesian.gtscript import stencil
-from functools import partial, cached_property
 import numpy as np
+from gt4py.cartesian.gtscript import stencil
+from ifs_physics_common.framework.config import GT4PyConfig
+from ifs_physics_common.framework.grid import ComputationalGrid, I, J, K
+from ifs_physics_common.framework.storage import managed_temporary_storage
+
 from config import Config
-from sl_dace.stencils.ffsl import (
-    velocity_on_faces_x,
-    split_cfl_x,
-    fourth_order_facet_interpolation_x,
-    monotonic_limiter_x,
-    inner_density_update_x,
-    integer_and_fractional_flux_sum
-)
+from sl_dace.interpolation.flux_integral import (fractional_flux_integral_x,
+                                                 integer_flux_integral_x)
+from sl_dace.stencils.ffsl import (fourth_order_facet_interpolation_x,
+                                   inner_density_update_x,
+                                   integer_and_fractional_flux_sum,
+                                   monotonic_limiter_x, split_cfl_x,
+                                   velocity_on_faces_x)
 from sl_dace.stencils.ppm import ppm_coefficients_x
-from sl_dace.interpolation.flux_integral import (
-    integer_flux_integral_x,
-    fractional_flux_integral_x
-)
 
 
 class FluxFormSemiLagX:
 
-    def __init__(self, config: Config, gt4py_config: GT4PyConfig, computational_grid: ComputationalGrid):
+    def __init__(self, config: Config, gt4py_config: GT4PyConfig):
         self.config = config
         self.gt4py_config = gt4py_config
-        self.computational_grid = computational_grid
+        self.computational_grid = self.config.computational_grid
 
         self.domain = self.config.domain
-        self.inner_domain = tuple(dim - 1 for dim in self.domain)
+        self.inner_domain = (
+            self.domain[0] - 1,
+            self.domain[1] - 1,
+            self.domain[2]
+        )
 
+        logging.warning(f"Inner domain shape {self.inner_domain}")
 
         nx, ny, nz =  self.config.domain
 
@@ -133,28 +135,36 @@ class FluxFormSemiLagX:
         with managed_temporary_storage(
             self.computational_grid,
             ((I, J, K), "int"),
-            *repeat(((I, J, K), "float"), 9),
+            *repeat(((I, J, K), "float"), 6),
+            *repeat(((I, J, K), "float"), 3),
             gt4py_config=self.gt4py_config
         ) as (
             chx_int,
             vxh,
             chx_frac,
             rho_hx,
-            a0x,
-            a1x,
-            a2x,
             fhx,
             fhx_int,
             fhx_frac,
+            a0x,
+            a1x,
+            a2x,
         ):
+
+            logging.warning(f"vx, shape {vx.shape}")
+            logging.warning(f"vxh, shape {vxh.shape}")
 
             # Cell faces remapping of v
             self.velocity_on_faces_x(
-                vx=vx,
-                vxh=vxh,
-                domain=self.inner_domain,
+                vx=vx[:-1, :,:],
+                vxh=vxh[:-1, :,:],
+                domain=self.domain,
                 origin=(1, 0, 0)
             )
+
+            # todo: boundary conditions
+
+
             self.split_cfl_x(
                 vxh=vxh,
                 cxh_int=chx_int,

@@ -7,12 +7,12 @@ from sl_dace.interpolation.interpolation_2d import (
     interpolate_lin_2d,
 )
 from sl_dace.elarche import Elarche
-from sl_dace.dims import I, J, K
+from sl_dace.utils.dims import I, J, K
 import dace
 from contextlib import contextmanager
-from ifs_physics_common.framework.grid import ComputationalGrid
+from ifs_physics_common.framework.grid import ComputationalGrid, I, J, K
 
-from typing import Tuple
+from typing import Tuple, Dict
 
 logging.getLogger(__name__)
 
@@ -24,14 +24,17 @@ def temporaries(
 ):
 
     yield {
-        name: np.zeros(grids[field_desc["grid"]].shape, dtype=field_desc[type])
+        name: np.zeros(grids[field_desc["grid"]].shape, dtype=field_desc["dtype"])
         for name, field_desc in temporary_fields.items()
     }
 
 class SmiLagXY:
 
-    def __init__(self, grid: Tuple[int], nitmp: int = 4):
-        self.elarche = Elarche(grid, nitmp)
+    def __init__(self, computational_grid: Dict, nitmp: int = 4):
+
+        self.computational_grid = computational_grid
+        grid_shape = computational_grid.grids[(I, J, K)].shape
+        self.elarche = Elarche(grid_shape, nitmp)
 
     @cached_property
     def _input_properties(self):
@@ -55,11 +58,13 @@ class SmiLagXY:
             "lx": {"grid": (I, J, K), "dtype": float},
             "ly": {"grid": (I, J, K), "dtype": float},
             "i_dep": {"grid": (I, J, K), "dtype": int},
-            "j_dep": {"grid": (I, J, K), "dtype": int}
+            "j_dep": {"grid": (I, J, K), "dtype": int},
+            "vx_tmp": {"grid": (I, J, K), "dtype": float},
+            "vy_tmp": {"grid": (I, J, K), "dtype": float}
         }
 
     def __call__(self,
-                 state: dict,
+                 state: Dict[str, np.ndarray],
                  grid_spacings: Tuple[float],
                  boundaries: Tuple[int],
                  x_axis: np.ndarray,
@@ -67,25 +72,25 @@ class SmiLagXY:
                  dth: float
                  ):
 
-        with temporaries(self._temporaries) as tempo:
+        with temporaries(self._temporaries, self.computational_grid.grids) as tempo:
 
             self.elarche(
-            idx=x_axis,
-            jdx=y_axis,
-            dx=grid_spacings[0],
-            dy=grid_spacings[1],
-            dth=dth,
-            bcx_kind=boundaries[0],
-            bcy_kind=boundaries[1],
-            vx_e=state["vx_e"],
-            vy_e=state["vy_e"],
-            vx=state["vx"],
-            vy=state["vy"],
-            lx=tempo["lx"],
-            ly=tempo["ly"],
-            i_dep=tempo["i_dep"],
-            j_dep=tempo["j_dep"]
-        )
+                idx=x_axis,
+                jdx=y_axis,
+                dx=grid_spacings[0],
+                dy=grid_spacings[1],
+                dth=dth,
+                vx_e=state["vx_e"],
+                vy_e=state["vy_e"],
+                vx=state["vx"],
+                vy=state["vy"],
+                lx=tempo["lx"],
+                ly=tempo["ly"],
+                i_dep=tempo["i_dep"],
+                j_dep=tempo["j_dep"],
+                vx_tmp=tempo["vx_tmp"],
+                vy_tmp=tempo["vy_tmp"]
+            )
 
             # Interpolate
             self.elarche.d_interpolate_lin_2d(

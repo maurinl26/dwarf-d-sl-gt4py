@@ -1,14 +1,15 @@
+from typing import Tuple
+
 import dace
 from gt4py.cartesian.gtscript import stencil
-from typing import Tuple
-from utils.typingx import dtype_float, dtype_int
 
 # stencils
 from sl_dace.interpolation.interpolation_2d import interpolate_lin_2d
 from sl_dace.stencils.copy import copy
 from sl_dace.stencils.dep_search_1d import dep_search_1d
 from sl_dace.utils.dims import I, J, K
-from sl_dace.utils.typingx import dtype_float
+from sl_dace.utils.typingx import dtype_float, dtype_int
+
 
 class Elarche:
 
