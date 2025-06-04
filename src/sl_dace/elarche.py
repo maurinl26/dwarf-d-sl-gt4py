@@ -1,56 +1,32 @@
 from typing import Tuple
 
 import dace
-from gt4py.cartesian.gtscript import stencil
 
-# stencils
 from sl_dace.interpolation.interpolation_2d import interpolate_lin_2d
 from sl_dace.stencils.copy import copy
 from sl_dace.stencils.dep_search_1d import dep_search_1d
 from sl_dace.utils.dims import I, J, K
+from sl_dace.utils.sdfg import build_sdfg
 from sl_dace.utils.typingx import dtype_float, dtype_int
 
 
 class Elarche:
 
-    def __init__(self, grid: Tuple[int], halo: int = 0, nitmp: int = 4, backend: str = "dace:cpu"):
-        self.grid = grid
+    def __init__(self, grid_shape: Tuple[int], halo: int = 0, nitmp: int = 4, backend: str = "dace:cpu"):
+        self.grid_shape = grid_shape
         self.symbol_mapping = {
-                "I": grid[0],
-                "J": grid[1],
-                "K": grid[2],
+                "I": grid_shape[0],
+                "J": grid_shape[1],
+                "K": grid_shape[2],
                 "H": halo
             }
         self.nitmp = nitmp
+        self.d_copy = build_sdfg(copy, device="cpu", mode="aot")
+        self.d_interpolate_lin_2d = build_sdfg(interpolate_lin_2d, device="cpu", mode="aot")
+        self.d_dep_search_1d = build_sdfg(dep_search_1d, device="cpu", mode="aot")
 
-        # stencils gt4py
-        self.copy = stencil(
-            backend=backend,
-            definition=copy,
-            name="copy"
-        )
-        self.dep_search_1d = stencil(
-            backend=backend,
-            definition=dep_search_1d,
-            name="dep_search_1d"
-        )
 
-        # dace
-        # interpolate_lin_2d
-        sdfg = (
-            dace.program(interpolate_lin_2d)
-            .to_sdfg()
-        )
-        if "gpu" in backend:
-            sdfg.apply_gpu_transformations()
-
-        self.d_interpolate_lin_2d = (
-            dace.program(interpolate_lin_2d)
-            .to_sdfg()
-            .compile()
-            )
-
-    # todo : shift to dace
+    @dace.method
     def __call__(self,
                  dx: dtype_float,
                  dy: dtype_float,
@@ -71,18 +47,17 @@ class Elarche:
         ):
 
         # Temporaries
-        self.copy(
+        self.d_copy(
             vx=vx,
             vy=vy,
             vx_tmp=vx_tmp,
             vy_tmp=vy_tmp,
-            domain=self.grid,
-            origin=(0, 0, 0)
+            **self.symbol_mapping
         )
 
         # Array declaration
         for l in range(self.nitmp):
-            self.dep_search_1d(
+            self.d_dep_search_1d(
                 vx_e=vx_e,
                 vx_tmp=vx_tmp,
                 i_a=idx,
@@ -90,10 +65,9 @@ class Elarche:
                 lx=lx,
                 dx=dx,
                 dth=dth,
-                domain=self.grid,
-                origin=(0, 0, 0)
+                **self.symbol_mapping
             )
-            self.dep_search_1d(
+            self.d_dep_search_1d(
                 vx_e=vy_e,
                 vx_tmp=vy_tmp,
                 i_a=jdx,
@@ -101,8 +75,7 @@ class Elarche:
                 lx=ly,
                 dx=dy,
                 dth=dth,
-                domain=self.grid,
-                origin=(0, 0, 0)
+                **self.symbol_mapping
             )
 
             # todo: add LipschitzDiag

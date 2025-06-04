@@ -1,6 +1,6 @@
 import dace
 from sl_dace.utils.typingx import dtype_float, dtype_int
-from sl_dace.utils.dims import I, J, K, KH
+from sl_dace.utils.dims import I, J, K
 
 def settls_init(
         vx_e: dtype_float[I, J, K],
