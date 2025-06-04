@@ -2,7 +2,6 @@ import dace
 from sl_dace.utils.typingx import dtype_int, dtype_float
 from sl_dace.utils.dims import I, J, K
 
-@stencil_collection("copy")
 def copy(
     vx_tmp: dtype_float[I, J, K],
     vy_tmp: dtype_float[I, J, K],
@@ -11,8 +10,8 @@ def copy(
 ):
 
     for i, j, k in dace.map[0:I, 0:J, 0:K]:
-        vx_tmp = vx
-        vy_tmp = vy
+        vx_tmp[i, j, k] = vx[i, j, k]
+        vy_tmp[i, j, k] = vy[i, j, k]
 
 def backup(
     tracer: dtype_float[I, J, K],

@@ -6,7 +6,6 @@ import dace
 import numpy as np
 from gt4py.cartesian.gtscript import stencil
 from ifs_physics_common.framework.config import GT4PyConfig
-from ifs_physics_common.framework.grid import ComputationalGrid, I, J, K
 from ifs_physics_common.framework.storage import managed_temporary_storage
 
 from config import Config
@@ -19,6 +18,9 @@ from sl_dace.stencils.ffsl import (fourth_order_facet_interpolation_x,
                                    velocity_on_faces_x)
 from sl_dace.stencils.ppm import ppm_coefficients_x
 
+from sl_dace.utils.typingx import dtype_int, dtype_float
+from sl_dace.utils.dims import I, J, K
+from sl_dace.utils.sdfg import build_sdfg
 
 class FluxFormSemiLagX:
 
@@ -39,56 +41,19 @@ class FluxFormSemiLagX:
         nx, ny, nz =  self.config.domain
 
         # (optim) : contract stencil compilation
-        self.velocity_on_faces_x = stencil(
-            name="velocity_on_faces_x",
-            definition=velocity_on_faces_x,
-            backend=self.gt4py_config.backend
-        )
-        self.split_cfl_x = stencil(
-            name="split_cfl_x",
-            definition=split_cfl_x,
-            backend=self.gt4py_config.backend
-        )
-        self.tracer_interpolation_x = stencil(
-            name="tracer_interpolation_x",
-            definition=fourth_order_facet_interpolation_x,
-            backend=self.gt4py_config.backend
-        )
-        self.monotonic_limiter_x = stencil(
-            name="monotonic_limiter_x",
-            definition=monotonic_limiter_x,
-            backend=self.gt4py_config.backend,
-        )
-        self.ppm_coefficients_x = stencil(
-            name="ppm_coefficients_x",
-            definition=ppm_coefficients_x,
-            backend=self.gt4py_config.backend
-        )
-        self.flux_sum = stencil(
-            name="integer_and_fractional_flux_sum",
-            definition=integer_and_fractional_flux_sum,
-            backend=self.gt4py_config.backend
-        )
-        self.inner_density_update_x = stencil(
-            name="inner_density_update_x",
-            definition=inner_density_update_x,
-            backend=self.gt4py_config.backend
-        )
-
-        # interpolations numpy / dace
-        # integer_flux_integral
-        self.integer_flux_integral_x = partial(
+        self.d_velocity_on_faces_x = build_sdfg(velocity_on_faces_x)
+        self.d_split_cfl_x = build_sdfg(split_cfl_x)
+        self.d_tracer_interpolation_x = build_sdfg(fourth_order_facet_interpolation_x)
+        self.d_monotonic_limiter_x = build_sdfg(monotonic_limiter_x)
+        self.d_ppm_coefficients_x = build_sdfg(ppm_coefficients_x)
+        self.d_flux_sum = build_sdfg(integer_and_fractional_flux_sum)
+        self.d_inner_density_update_x = build_sdfg(inner_density_update_x)
+        self.d_integer_flux_integral_x = build_sdfg(
             integer_flux_integral_x,
-            nx=nx,
-            ny=ny,
-            nz=nz
         )
         # fractional flux integral
-        self.fractional_flux_integral_x = partial(
+        self.fractional_flux_integral_x = build_sdfg(
             fractional_flux_integral_x,
-            nx=nx,
-            ny=ny,
-            nz=nz
         )
 
 
@@ -108,15 +73,15 @@ class FluxFormSemiLagX:
     @cached_property
     def _temporaries(self):
         return {
-            "vxh": {"grid": (I - 1/2, J, K), "type": "float"},
-            "cxh_int": {"grid": (I - 1/2, J, K), "type": "int"},
-            "cxh_frac": {"grid": (I - 1/2, J, K), "type": "float"},
+            "vxh": {"grid": (I - 1, J, K), "type": "float"},
+            "cxh_int": {"grid": (I - 1, J, K), "type": "int"},
+            "cxh_frac": {"grid": (I - 1, J, K), "type": "float"},
             "a0x": {"grid": (I, J, K), "type": "float"},
             "a1x": {"grid": (I, J, K), "type": "float"},
             "a2x": {"grid": (I, J, K), "type": "float"},
-            "fhx_int": {"grid": (I - 1/2, J, K), "type": "float"},
-            "fhx_frac": {"grid": (I - 1/2, J, K), "type": "float"},
-            "fhx_x": {"grid": (I - 1/2, J, K), "type": "float"}
+            "fhx_int": {"grid": (I - 1, J, K), "type": "float"},
+            "fhx_frac": {"grid": (I - 1, J, K), "type": "float"},
+            "fhx_x": {"grid": (I - 1, J, K), "type": "float"}
         }
 
     # todo: shift call to dace
@@ -155,7 +120,7 @@ class FluxFormSemiLagX:
             logging.warning(f"vxh, shape {vxh.shape}")
 
             # Cell faces remapping of v
-            self.velocity_on_faces_x(
+            self.d_velocity_on_faces_x(
                 vx=vx[:-1, :,:],
                 vxh=vxh[:-1, :,:],
                 domain=self.domain,
@@ -165,7 +130,7 @@ class FluxFormSemiLagX:
             # todo: boundary conditions
 
 
-            self.split_cfl_x(
+            self.d_split_cfl_x(
                 vxh=vxh,
                 cxh_int=chx_int,
                 cxh_frac=chx_frac,
@@ -181,13 +146,13 @@ class FluxFormSemiLagX:
                 self.inner_domain[2]
             )
 
-            self.tracer_interpolation_x(
+            self.d_tracer_interpolation_x(
                 psihx=rho_hx,
                 psi=rho0,
                 domain=interpolation_domain,
                 origin=(2, 0, 0)
             )
-            self.monotonic_limiter_x(
+            self.d_monotonic_limiter_x(
                 psi=rho0,
                 psihx=rho_hx,
                 domain=self.inner_domain,
@@ -195,7 +160,7 @@ class FluxFormSemiLagX:
             )
 
 
-            self.ppm_coefficients_x(
+            self.d_ppm_coefficients_x(
                 psi=rho0,
                 psih=rho_hx,
                 a0=a0x,
@@ -205,8 +170,7 @@ class FluxFormSemiLagX:
                 origin=(2, 0, 0)
             )
 
-            # numpy / dace interpolations
-            self.integer_flux_integral_x(
+            self.d_integer_flux_integral_x(
                 fhx_int=fhx_int,
                 chx_int=chx_int,
                 rho=rho0,
@@ -214,7 +178,7 @@ class FluxFormSemiLagX:
                 dv=dv,
                 dt=dt,
             )
-            self.fractional_flux_integral_x(
+            self.d_fractional_flux_integral_x(
                 a0=a0x,
                 a1=a1x,
                 a2=a2x,
@@ -227,14 +191,14 @@ class FluxFormSemiLagX:
             )
             
             #sum and density update
-            self.flux_sum(
+            self.d_flux_sum(
                 fhx=fhx,
                 fhx_int=fhx_int,
                 fhx_frac=fhx_frac,
                 domain=self.inner_domain,
                 origin=(1, 0, 0)
             )
-            self.inner_density_update_x(
+            self.d_inner_density_update_x(
                 rho=rho0,
                 rho_ix=rho1,
                 fhx=fhx,

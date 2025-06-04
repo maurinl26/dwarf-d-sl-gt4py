@@ -1,8 +1,8 @@
 import numpy as np
-from typing import Tuple
-from gt4py.cartesian.gtscript import stencil
 from config import Config
 
+import dace
+from sl_dace.utils.sdfg import build_sdfg
 from sl_dace.stencils.blossey import radius, theta
 
 class PolarCoordinates:
@@ -19,17 +19,13 @@ class PolarCoordinates:
         self.horizontal_coordinates = np.meshgrid((self.xcr, self.ycr))
 
         # Stencils
-        self.radius  = stencil(
-            backend="dace:cpu",
-            definition=radius,
-            name="radius"
-        )
-        self.theta = stencil(
-            backend="dace:cpu",
-            definition=theta,
-            name="theta"
-        )
+        self.d_radius  = build_sdfg(radius)
+        self.d_theta = build_sdfg(theta)
 
-    def __call__(self):
-        self.radius(self.xcr, self.ycr, radius, domain=self.grid, origin=(0, 0, 0))
-        self.theta(self.xcr, self.ycr, theta, domain=self.grid, origin=(0, 0, 0))
+
+    def __call__(self,
+                 radius: np.ndarray,
+                 theta: np.ndarray
+                 ):
+        self.d_radius(self.xcr, self.ycr, radius, domain=self.grid, origin=(0, 0, 0))
+        self.d_theta(self.xcr, self.ycr, theta, domain=self.grid, origin=(0, 0, 0))

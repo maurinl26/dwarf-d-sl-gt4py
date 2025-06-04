@@ -1,7 +1,7 @@
 import numpy as np
 from gt4py.cartesian.gtscript import stencil
 
-# stencils imported
+from sl_dace.utils.sdfg import build_sdfg
 from sl_dace.stencils.blossey_velocity  import radius, theta, blossey_tracer
 from fvms.initialization.velocity import _velocity_blossey
 
@@ -10,27 +10,10 @@ class Blossey:
 
     def __init__(self):
 
-        self.blossey_stf = stencil(
-            name="blossey_stf",
-            definition=blossey_stf,
-
-        )
-
-        self.stream_function_xy = stencil(
-            name="stream_function_xy",
-            definition=stream_function_xy,
-
-        )
-
-        self.blossey_tracer = stencil(
-            name="blossey_tracer",
-            definition=blossey_tracer
-        )
-
-        self.copy = stencil(
-            name="copy",
-            definition=copy
-        )
+        self.d_blossey_stf = build_sdfg(blossey_stf)
+        self.d_stream_function_xy = build_sdfg(stream_function_xy)
+        self.d_blossey_tracer = build_sdfg(blossey_tracer)
+        self.d_copy = build_sdfg(copy)
 
     def blossey_velocity(self,
                          stf: np.ndarray,

@@ -1,6 +1,7 @@
-from typing import Tuple, Union
-from gt4py.cartesian.gtscript import stencil
+from typing import Union
 
+import dace
+from sl_dace.utils.sdfg import build_sdfg
 from sl_dace.stencils.sl_init import settls_init, nesc_init
 
 class SLInit:
@@ -9,19 +10,11 @@ class SLInit:
 
         match option:
             case "lsettls":
-                self.sl_init = stencil(
-                    backend="dace:cpu",
-                    definition=nesc_init,
-                    name="nesc"
-                )
+                self.d_sl_init = build_sdfg(nesc_init)
             case "lnesc":
-                self.sl_init = stencil(
-                    backend="dace:cpu",
-                    definition=settls_init,
-                    name="settls"
-                 )
+                self.sl_init = build_sdfg(settls_init)
 
-    # todo: implement call
+    @dace.method
     def __call__(self,
                  state: dict):
 

@@ -1,4 +1,5 @@
 import dace
+import numpy as np
 from sl_dace.utils.typingx import dtype_int, dtype_float
 from sl_dace.utils.dims import I, J, K
 
@@ -63,10 +64,12 @@ def split_cfl_x(
     :param dx: grid spacing on x
     :param dt: timestep
     """
+    cxh = np.ndarray([I, J, K+1], dtype=dtype_float)
+
     for i, j, k in dace.map[0:I, 0:J, 0:K]:
         cxh[i, j, k] =  - vxh[i, j, k] * dt / dx
         cxh_int[i, j, k] = floor(cxh[i, j, k])
-        chx_frac[i, j, k] = cxh[i, j, k] - floor(cxh[i, j, k])
+        cxh_frac[i, j, k] = cxh[i, j, k] - floor(cxh[i, j, k])
 
 
 def split_cfl_y(
@@ -84,10 +87,12 @@ def split_cfl_y(
     :param dy:
     :param dt:
     """
+    cyh = np.ndarray([I, J, K+1], dtype=dtype_float)
+
     for i, j, k in dace.map[0:I, 0:J, 0:K]:
         cyh[i, j, k] =  - vyh[i, j, k] * dt / dy
         cyh_int[i, j, k] = floor(cyh[i, j, k])
-        chy_frac[i, j, k] = cyh[i, j, k] - floor(cyh[i, j, k])
+        cyh_frac[i, j, k] = cyh[i, j, k] - floor(cyh[i, j, k])
 
 
 # 2. Interpolate h (advected tracer)
@@ -106,11 +111,11 @@ def fourth_order_facet_interpolation_x(
 
 
 def fourth_order_facet_interpolation_y(
-        psihy: dtype_float[I, J, K],
+        psihy: dtype_float[I, J, K + 1],
         psi: dtype_float[I, J, K]
 ):
         for i, j, k in dace.map[0:I, 0:J, 0:K]:
-        psihy[0, 0, 0] = (psi[0, -2, 0] + 7 * psi[0, -1, 0] + 7 * psi[0, 0, 0] + psi[0, 1, 0]) / 12
+            psihy[i, j, k] = (psi[i, i-2, k] + 7 * psi[i, j-1, k] + 7 * psi[i, j, k] + psi[i, j+1, k]) / 12
 
 
 # 4. PPM limiter

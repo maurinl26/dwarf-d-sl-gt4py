@@ -2,8 +2,14 @@ import dace
 from typing import Callable, Literal
 
 
-def build_sdfg(function: Callable, mode: Literal["aot", "jit"], device: Literal["gpu", "cpu"]):
+def build_sdfg(function: Callable, mode: Literal["aot", "jit"] = "jit", device: Literal["gpu", "cpu"] = "cpu"):
+    """
 
+    :param function:
+    :param mode:
+    :param device:
+    :return:
+    """
     # dace
     sdfg = (
         dace.program(function)
