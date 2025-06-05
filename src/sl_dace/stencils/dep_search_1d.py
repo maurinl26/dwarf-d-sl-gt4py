@@ -4,6 +4,7 @@ from sl_dace.utils.typingx import dtype_float, dtype_int
 
 import numpy as np
 
+@dace.program
 def dep_search_1d(
     vx_e: dtype_float[I, J, K],
     vx_tmp: dtype_float[I, J, K],

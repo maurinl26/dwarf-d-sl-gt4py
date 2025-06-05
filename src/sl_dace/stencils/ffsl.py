@@ -4,6 +4,7 @@ from sl_dace.utils.typingx import dtype_int, dtype_float
 from sl_dace.utils.dims import I, J, K
 
 # 1. remap velocity
+@dace.program
 def velocity_on_faces_x(
         vx: dtype_float[I, J, K],
         vxh: dtype_float[I, J, K + 1],
@@ -25,6 +26,7 @@ def velocity_on_faces_x(
     for i, j, k in dace.map[0:I, 0:J, 0:K]:
         vxh[i, j, k] = 0.5 * (vx[i-1, j, k] + vx[i, j, k])
 
+@dace.program
 def velocity_on_faces_y(
         vy: dtype_float[I, J, K],
         vyh: dtype_float[I, J, K + 1],
@@ -47,6 +49,7 @@ def velocity_on_faces_y(
 
 
 # 1.5 convert velocity to integer and fractional cfl
+@dace.program
 def split_cfl_x(
         vxh: dtype_float[I, J, K + 1],
         cxh_int: dtype_int[I, J, K + 1],
@@ -71,7 +74,7 @@ def split_cfl_x(
         cxh_int[i, j, k] = floor(cxh[i, j, k])
         cxh_frac[i, j, k] = cxh[i, j, k] - floor(cxh[i, j, k])
 
-
+@dace.program
 def split_cfl_y(
         vyh: dtype_float[I, J, K + 1],
         cyh_int: dtype_int[I, J, K + 1],
@@ -96,6 +99,7 @@ def split_cfl_y(
 
 
 # 2. Interpolate h (advected tracer)
+@dace.program
 def fourth_order_facet_interpolation_x(
         psihx: dtype_float[I, J, K + 1],
         psi: dtype_float[I, J, K]
@@ -109,7 +113,7 @@ def fourth_order_facet_interpolation_x(
     for i, j, k in dace.map[0:I, 0:J, 0:K]:
         psihx[i, j, k] = (psi[i-2, j, k] + 7 * psi[i-1, j, k] + 7 * psi[i, j, k] + psi[i+1, j, k]) / 12
 
-
+@dace.program
 def fourth_order_facet_interpolation_y(
         psihy: dtype_float[I, J, K + 1],
         psi: dtype_float[I, J, K]
@@ -119,6 +123,7 @@ def fourth_order_facet_interpolation_y(
 
 
 # 4. PPM limiter
+@dace.program
 def monotonic_limiter_x(
         psihx: dtype_float[I, J, K + 1],
         psi: dtype_float[I, J, K]
@@ -136,7 +141,7 @@ def monotonic_limiter_x(
             max(psihx[i, j, k], min(psi[i-1, j, k], psi[i, j, k]))
         )
 
-
+@dace.program
 def monotonic_limiter_y(
     psihy: dtype_float[I, J, K+1],
     psi: dtype_float[I, J, K]
@@ -152,6 +157,7 @@ def monotonic_limiter_y(
 # sum of integer and fractional part also in numpy
 
 # 4.5 sum of fractional and integer flux
+@dace.program
 def integer_and_fractional_flux_sum(
         fhx: dtype_float[I, J, K],
         fhx_int: dtype_float[I, J, K + 1],
@@ -169,6 +175,7 @@ def integer_and_fractional_flux_sum(
 
 
 # 5. density update with updated flux
+@dace.program
 def inner_density_update_x(
         rho: dtype_float[I, J, K],
         rho_ix: dtype_float[I, J, K],
@@ -192,7 +199,7 @@ def inner_density_update_x(
                 - dt * (fhx[i, j, k] * ds_yz - fhx[i, j, k] * ds_yz) / dv
         )
 
-
+@dace.program
 def inner_density_update_y(
         rho: dtype_float[I, J, K],
         rho_iy: dtype_float[I, J, K],
@@ -218,6 +225,7 @@ def inner_density_update_y(
 
 
 # todo : implement SWIFT outer steps for splitting
+@dace.program
 def swift_outer_density_update(
         rho_ay: dtype_float[I, J, K],
         sigma_x

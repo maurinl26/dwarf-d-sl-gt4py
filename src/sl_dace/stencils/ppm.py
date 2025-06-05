@@ -3,6 +3,7 @@ from sl_dace.utils.dims import I, J, K
 
 # todo: prescribe boundaries
 # 3. PPM coefficients
+@dace.program
 def ppm_coefficients_x(
         psi: dtype_float[I, J, K],
         psih: dtype_float[I, J, K + 1],

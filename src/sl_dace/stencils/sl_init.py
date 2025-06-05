@@ -2,6 +2,7 @@ import dace
 from sl_dace.utils.typingx import dtype_float, dtype_int
 from sl_dace.utils.dims import I, J, K
 
+@dace.program
 def settls_init(
         vx_e: dtype_float[I, J, K],
         vy_e: dtype_float[I, J, K],
@@ -15,6 +16,7 @@ def settls_init(
         vx_e[i, j, k] = 2 * vx[i, j, k] - vx_p[i, j, k]
         vy_e[i, j, k] = 2 * vy[i, j, k] - vy_p[i, j, k]
 
+@dace.program
 def nesc_init(
         vx_e: dtype_float[I, J, K],
         vy_e: dtype_float[I, J, K],

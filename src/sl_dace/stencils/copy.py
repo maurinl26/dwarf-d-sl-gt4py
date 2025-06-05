@@ -2,6 +2,7 @@ import dace
 from sl_dace.utils.typingx import dtype_int, dtype_float
 from sl_dace.utils.dims import I, J, K
 
+@dace.program
 def copy(
     vx_tmp: dtype_float[I, J, K],
     vy_tmp: dtype_float[I, J, K],
@@ -13,6 +14,7 @@ def copy(
         vx_tmp[i, j, k] = vx[i, j, k]
         vy_tmp[i, j, k] = vy[i, j, k]
 
+@dace.program
 def backup(
     tracer: dtype_float[I, J, K],
     tracer_e: dtype_float[I, J, K]
