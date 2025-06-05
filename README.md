@@ -86,3 +86,7 @@ All tests run on python or dace execution mode.
 ```bash
    uv run sphinx-autobuild -M html docs/ docbuild/
 ```
+
+## Autodiff experiments
+
+- branche **autodiff** : schéma ffsl auto-différentiable
