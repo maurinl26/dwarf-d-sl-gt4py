@@ -2,7 +2,7 @@ import numpy as np
 import dace
 from sl_dace.utils.dims import I, J, K, H
 
-# dace sdfg
+@dace.program
 def interpolate_lin_2d(
     lx: dace.float32[I, J, K],
     ly: dace.float32[I, J, K],

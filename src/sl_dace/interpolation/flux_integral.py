@@ -1,17 +1,17 @@
 import numpy as np
 from itertools import product
 from typing import Tuple
+from sl_dace.utils.typingx import dtype_float, dtype_int
+from sl_dace.utils.dims import I, J, K
 
+@dace.program
 def integer_flux_integral_x(
-    fhx_int: np.ndarray,
-    chx_int: np.ndarray,
-    rho: np.ndarray,
-    ds_yz: float,
-    dv: float,
-    dt: float,
-    nx: np.ndarray,
-    ny: np.ndarray,
-    nz: np.ndarray
+    fhx_int: dtype_float[I + 1, J, K],
+    chx_int: dtype_float[I + 1, J, K],
+    rho: dtype_float[I, J, K],
+    ds_yz: dtype_float,
+    dv: dtype_float,
+    dt: dtype_float,
 ):
     """
     Computes the integral of the flux on the path given by c
@@ -29,12 +29,9 @@ def integer_flux_integral_x(
     :param ny:  number of cells on y
     :param nz:  number of cells on z
     """
-    I = np.arange(0, nx)
-    J = np.arange(0, ny)
-    K = np.arange(0, nz)
 
-    for i,j in product(I, J):
-        for k in K:
+
+    for i,j,k in dace.map[0:I, 0:J, 0:K]:
 
             if chx_int[i, j, k] >= 0:
                 fhx_int[i, j, k] = np.sum(
@@ -46,20 +43,17 @@ def integer_flux_integral_x(
                     rho[i + 1: i - chx_int[i, j, k], j, k] * dv
                 ) / (ds_yz * dt)
 
-
+@dace.program
 def fractional_flux_integral_x(
-    a0: np.ndarray,
-    a1: np.ndarray,
-    a2: np.ndarray,
-    chx_int: np.ndarray,
-    chx_frac: np.ndarray,
-    fhx_frac: np.ndarray,
-    ds_yz: float,
-    dv: float,
-    dt: float,
-    nx: np.ndarray,
-    ny: np.ndarray,
-    nz: np.ndarray
+    a0: dtype_float[I, J, K],
+    a1: dtype_float[I, J, K],
+    a2: dtype_float[I, J, K],
+    chx_int: dtype_float[I + 1, J, K],
+    chx_frac: dtype_float[I + 1, J, K],
+    fhx_frac: dtype_float[I + 1, J, K],
+    ds_yz: dtype_float,
+    dv: dtype_float,
+    dt: dtype_float,
 ):
     """
     Computes the integral of the flux on the path given by c
@@ -77,12 +71,8 @@ def fractional_flux_integral_x(
     :param ny:  number of cells on y
     :param nz:  number of cells on z
     """
-    I = np.arange(0, nx)
-    J = np.arange(0, ny)
-    K = np.arange(0, nz)
 
-    for i,j in product(I, J):
-        for k in K:
+    for i,j,k in dace.map[0:I, 0:J, 0:K]:
 
             if chx_int[i, j, k] >= 0:
                 ppm_coeffs = (
@@ -107,11 +97,12 @@ def fractional_flux_integral_x(
                     ppm_integral(ppm_coeffs, 0, abs(chx_frac[i, j, k]), ) * dv
                 ) / (ds_yz * dt)
 
-
+@dace.program
 def ppm_integral(
-        a: Tuple[float],
-        inf_bound: float,
-        sup_bound: float):
+        a: Tuple[dtype_float],
+        inf_bound: dtype_float,
+        sup_bound: dtype_float
+):
     """
     Integral of the parabolic spline of ppm
     given a lower and an upper bound.
