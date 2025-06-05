@@ -17,7 +17,5 @@ class SLInit:
     @dace.method
     def __call__(self,
                  state: dict):
-
-
         ...
 
