@@ -24,18 +24,19 @@ from sl_dace.stencils.ppm import ppm_coefficients_x
 from sl_dace.utils.typingx import dtype_int, dtype_float
 from sl_dace.utils.dims import I, J, K
 from sl_dace.utils.sdfg import build_sdfg
+from typingx import dace_float
 
 
 @dace.program
-def flux_from_semi_lag_x(self,
-             vx: np.ndarray,
-             vy: np.ndarray,
-             rho0: np.ndarray,
-             rho1: np.ndarray,
-             dt: float,
-             ds_yz: float,
-             dv: float,
-             dx: float
+def flux_from_semi_lag_x(
+             vx: dace_float[I, J, K],
+             vy: dace_float[I, J, K],
+             rho0: dace_float[I, J, K],
+             rho1: dace_float[I, J, K],
+             dt: dace_float,
+             ds_yz: dace_float,
+             dv: dace_float,
+             dx: dace_float
              ):
     chx_int = np.ndarray([I + 1, J, K], dtype=dtype_float)
     vxh = np.ndarray([I + 1, J, K], dtype=dtype_float)
@@ -65,13 +66,7 @@ def flux_from_semi_lag_x(self,
         dt=dt,
     )
 
-    interpolation_domain = (
-        self.inner_domain[0] - 2,
-        self.inner_domain[1],
-        self.inner_domain[2]
-    )
-
-    tracer_interpolation_x(
+    fourth_order_facet_interpolation_x(
         psihx=rho_hx,
         psi=rho0,
     )
@@ -111,7 +106,7 @@ def flux_from_semi_lag_x(self,
     )
 
     # sum and density update
-    flux_sum(
+    integer_and_fractional_flux_sum(
         fhx=fhx,
         fhx_int=fhx_int,
         fhx_frac=fhx_frac,
