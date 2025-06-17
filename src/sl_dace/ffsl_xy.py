@@ -1,28 +1,19 @@
 from collections.abc import dict_values
-from ifs_physics_common.framework.storage import managed_temporary_storage
 from config import Config
+from sl_dace.ffsl_x import flux_from_semi_lag_x
+import dace
 
 
-class FluxFormSemiLagXY:
+def flux_form_semi_lag_xy():
+    ...
 
-    def __init__(self,
-                 config: Config,
-                 ):
+    # FluxFormSemiLagX(sigma)
+    # FluxFormSemiLagY(sigma)
 
+    # FluxFormSemiLagX(rho)
+    # FluxFormSemiLagY(rho)
 
-
-    def __call__(self):
-
-        match self.splitting_mode:
-            case "SWIFT":
-                ...
-                #FluxFormSemiLagX(sigma)
-                #FluxFormSemiLagY(sigma)
-
-                # FluxFormSemiLagX(rho)
-                # FluxFormSemiLagY(rho)
-
-                # FluxFormSemiLagY(rhox / sigmax)
-                # FluxFormSemiLagX(rhoy / sigmay)
-                # todo: partial operators for pure advection
+    # FluxFormSemiLagY(rhox / sigmax)
+    # FluxFormSemiLagX(rhoy / sigmay)
+    # todo: partial operators for pure advection
 

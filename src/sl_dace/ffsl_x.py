@@ -30,7 +30,6 @@ from typingx import dace_float
 @dace.program
 def flux_from_semi_lag_x(
              vx: dace_float[I, J, K],
-             vy: dace_float[I, J, K],
              rho0: dace_float[I, J, K],
              rho1: dace_float[I, J, K],
              dt: dace_float,
