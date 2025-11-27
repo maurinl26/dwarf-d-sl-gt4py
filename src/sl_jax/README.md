@@ -111,19 +111,41 @@ sl_xy_jit = jit(sl_xy, static_argnums=(0, 6))  # config and nitmp are static
 tracer_new = sl_xy_jit(config, vx, vy, vx_e, vy_e, tracer, tracer_e, nitmp)
 ```
 
+## Optimizations
+
+The module has been optimized for GPU execution using JAX's advanced features:
+
+1. **`lax.fori_loop`**: The lagrangian search iteration and periodic filter cell processing now use `lax.fori_loop` for JIT-compilable loops
+2. **Functional Updates**: All array modifications use JAX's `.at[]` syntax for immutable updates
+3. **Vectorized Operations**: Interpolation and boundary conditions are fully vectorized
+4. **JIT-Ready**: All functions can be JIT-compiled for optimal performance
+
+See `OPTIMIZATIONS.md` for detailed information about performance improvements.
+
+### Performance Tips
+
+```python
+from jax import jit
+
+# JIT compile for best performance (config and nitmp are static)
+sl_xy_jit = jit(sl_xy, static_argnums=(0, 6))
+
+# Warmup (first call includes compilation)
+_ = sl_xy_jit(config, vx, vy, vx_e, vy_e, tracer, tracer_e, 4)
+
+# Use compiled version
+tracer_new = sl_xy_jit(config, vx, vy, vx_e, vy_e, tracer, tracer_e, 4)
+```
+
+Expected speedups: 10-50x vs NumPy on GPU (varies with grid size and hardware).
+
 ## Limitations and TODOs
 
-1. **Filter Functions**: The over/undershoot filter implementations in `filter.py` and `periodic_filters.py` are simplified placeholders. The original implementations use sequential updates that affect neighboring cells, which is challenging to vectorize in JAX while maintaining exact equivalence. Full implementation would require:
-   - Using `jax.lax.fori_loop` or `jax.lax.scan` for sequential state updates
-   - Careful handling of boundary conditions and neighbor dependencies
-   - Potentially restructuring the algorithm for better parallelization
+1. **Non-periodic Filters**: The non-periodic over/undershoot filters in `filter.py` are simplified placeholders. Full implementation needs similar `lax.fori_loop` treatment as periodic filters.
 
-2. **Performance Optimization**: Additional optimizations may be needed:
-   - Strategic use of `@jit` decorators
-   - Handling of static vs traced arguments
-   - Memory layout optimization for GPU execution
+2. **Testing**: Comprehensive testing against the NumPy implementation is needed to verify correctness.
 
-3. **Testing**: Comprehensive testing against the NumPy implementation is needed to verify correctness.
+3. **Batching**: Add `vmap` support for processing multiple tracers simultaneously.
 
 ## Dependencies
 

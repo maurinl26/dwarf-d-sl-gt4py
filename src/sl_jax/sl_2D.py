@@ -1,6 +1,7 @@
 from typing import Tuple
 import jax.numpy as jnp
 import jax
+from jax import lax
 import logging
 
 from config import Config
@@ -126,7 +127,7 @@ def lagrangian_search(
     nitmp: int = 4,
 ) -> Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray]:
     """Research departure point for a given grid and velocity field using JAX.
-    Terminates on nitmp iterations.
+    Terminates on nitmp iterations. Optimized with lax.fori_loop.
 
     Args:
         config (Config): configuration object
@@ -140,14 +141,15 @@ def lagrangian_search(
         Tuple[jnp.ndarray, jnp.ndarray, jnp.ndarray, jnp.ndarray]: departure point coordinates and indices
     """
 
-    vx_tmp = vx.copy()
-    vy_tmp = vy.copy()
-
-    # Iterative search
-    for l in range(nitmp):
+    def iteration_body(l, state):
+        """Body function for fori_loop iteration."""
+        vx_tmp, vy_tmp, lx, ly, i_d, j_d = state
+        
+        # Compute departure points
         lx, i_d = dep_search_1d(config.I, vx_e, vx_tmp, config.dx, config.dth)
         ly, j_d = dep_search_1d(config.J, vy_e, vy_tmp, config.dy, config.dth)
 
+        # Diagnostic (computed but not used in state)
         lipschitz = diagnostic_lipschitz(
             vx_tmp, vy_tmp, config.dx, config.dy, config.dth
         )
@@ -160,7 +162,24 @@ def lagrangian_search(
         vy_tmp = interpolate_lin_2d(
             vy, lx, ly, i_d, j_d, config.bcx_kind, config.bcy_kind, config.nx, config.ny
         )
+        
+        return (vx_tmp, vy_tmp, lx, ly, i_d, j_d)
 
+    # Initialize state
+    vx_tmp = vx.copy()
+    vy_tmp = vy.copy()
+    lx = jnp.zeros_like(vx)
+    ly = jnp.zeros_like(vy)
+    i_d = jnp.zeros_like(vx, dtype=jnp.int32)
+    j_d = jnp.zeros_like(vy, dtype=jnp.int32)
+    
+    init_state = (vx_tmp, vy_tmp, lx, ly, i_d, j_d)
+    
+    # Run iterations using lax.fori_loop for better performance
+    final_state = lax.fori_loop(0, nitmp, iteration_body, init_state)
+    
+    _, _, lx, ly, i_d, j_d = final_state
+    
     return lx, ly, i_d, j_d
 
 

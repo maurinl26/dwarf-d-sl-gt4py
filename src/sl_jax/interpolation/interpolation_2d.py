@@ -1,5 +1,6 @@
 import jax.numpy as jnp
 import jax
+from jax import vmap
 
 from sl_jax.boundaries import boundaries
 
